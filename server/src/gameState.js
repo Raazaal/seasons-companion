@@ -2,6 +2,25 @@ import { generateId, generateToken, generateJoinCode } from "./ids.js";
 
 export class GameActionError extends Error {}
 
+function requireCard(context, cardId) {
+  const card = context.cards?.get(cardId);
+  if (!card) throw new GameActionError(`Unknown card: ${cardId}`);
+  return card;
+}
+
+function effectTargets(effect, actorPlayerId, players) {
+  switch (effect.target) {
+    case "self":
+      return [actorPlayerId];
+    case "each_opponent":
+      return players.filter((p) => p.id !== actorPlayerId).map((p) => p.id);
+    case "all_players":
+      return players.map((p) => p.id);
+    default:
+      throw new GameActionError(`Unknown effect target: ${effect.target}`);
+  }
+}
+
 export function createInitialState() {
   return {
     joinCode: generateJoinCode(),
@@ -107,6 +126,51 @@ function nextTurn(state) {
   return { state: { ...state, activePlayerId: state.turnOrder[nextIndex] } };
 }
 
+function addCardToHand(state, action, context) {
+  assertPhase(state, ["playing"]);
+  const card = requireCard(context, action.cardId);
+  const player = findPlayer(state, action.playerId);
+  const instance = { cardId: card.id, instanceId: generateId() };
+  return {
+    state: {
+      ...state,
+      players: state.players.map((p) => (p.id === player.id ? { ...p, hand: [...p.hand, instance] } : p)),
+    },
+  };
+}
+
+function removeCardFromHand(state, action) {
+  assertPhase(state, ["playing"]);
+  const player = findPlayer(state, action.playerId);
+  return {
+    state: {
+      ...state,
+      players: state.players.map((p) =>
+        p.id === player.id ? { ...p, hand: p.hand.filter((c) => c.instanceId !== action.instanceId) } : p,
+      ),
+    },
+  };
+}
+
+function activateCard(state, action, context) {
+  assertPhase(state, ["playing"]);
+  const card = requireCard(context, action.cardId);
+  findPlayer(state, action.actorPlayerId);
+  let nextState = state;
+  for (const effect of card.effects) {
+    const targets = effectTargets(effect, action.actorPlayerId, state.players);
+    for (const targetPlayerId of targets) {
+      nextState = applyScoreDelta(nextState, targetPlayerId, effect.amount, {
+        source: "card_effect",
+        actorPlayerId: action.actorPlayerId,
+        cardId: card.id,
+        cardName: card.name,
+      });
+    }
+  }
+  return { state: nextState };
+}
+
 export function applyAction(state, action, context = {}) {
   switch (action.type) {
     case "JOIN_GAME":
@@ -121,6 +185,12 @@ export function applyAction(state, action, context = {}) {
       return adjustScore(state, action);
     case "NEXT_TURN":
       return nextTurn(state, action);
+    case "ADD_CARD_TO_HAND":
+      return addCardToHand(state, action, context);
+    case "REMOVE_CARD_FROM_HAND":
+      return removeCardFromHand(state, action);
+    case "ACTIVATE_CARD":
+      return activateCard(state, action, context);
     default:
       throw new GameActionError(`Unknown action type: ${action.type}`);
   }
