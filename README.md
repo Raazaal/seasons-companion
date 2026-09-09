@@ -8,11 +8,11 @@ Compagnon de score en temps réel pour le jeu de société *Seasons* (2-4 joueur
 2. Dans Termux :
    ```bash
    pkg install nodejs git termux-api
-   git clone <url-du-repo> seasons-companion
+   git clone https://github.com/Raazaal/seasons-companion.git
    cd seasons-companion
-   npm install
-   npm run build
+   npm install --workspace server
    ```
+   Le `--workspace server` est important : il installe uniquement les dépendances du serveur (Express, ws), sans toucher aux dépendances du client (Vite/esbuild/Svelte). Ça évite un bug connu d'esbuild sous Termux (`CANNOT LINK EXECUTABLE`, le binaire téléchargé ne tourne pas sur Android/Bionic). Le dossier `client/dist` est déjà compilé et fourni directement dans le dépôt — il n'y a donc rien à builder sur le téléphone.
 3. Empêcher Android de tuer le serveur en arrière-plan :
    ```bash
    termux-wake-lock
@@ -32,6 +32,14 @@ npm test                             # lance les tests serveur puis client
 npm run build --workspace client     # build de production du client
 npm run dev --workspace client       # serveur de dev Vite avec hot-reload (pour itérer sur l'UI)
 node server/src/index.js             # lance le serveur (nécessite un build client existant)
+```
+
+`client/dist/` est commité dans le dépôt (exception au `.gitignore` habituel) pour que l'hôte Termux n'ait jamais besoin de builder le client lui-même. Après toute modification du client, penser à rebuilder et committer le résultat :
+
+```bash
+npm run build --workspace client
+git add -f client/dist
+git commit -m "chore: rebuild client dist"
 ```
 
 ## Checklist de test manuel avant une soirée jeu
