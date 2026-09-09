@@ -46,14 +46,11 @@ describe("saveState / loadState", () => {
     const stateB = { phase: "summer", players: ["a", "b"] };
 
     // Fire both saves without awaiting the first before starting the second,
-    // so they genuinely overlap in-flight.
-    const results = await Promise.allSettled([
-      saveState(filePath, stateA),
-      saveState(filePath, stateB),
-    ]);
-
-    // (a) neither call rejects/throws.
-    expect(results.every((r) => r.status === "fulfilled")).toBe(true);
+    // so they genuinely overlap in-flight. If either call rejected, Promise.all
+    // itself would reject and this await would throw, failing the test.
+    await expect(
+      Promise.all([saveState(filePath, stateA), saveState(filePath, stateB)])
+    ).resolves.toBeDefined();
 
     // (b) the second call is chained after the first in the internal queue,
     // so it is guaranteed to be the last write to land on disk.
