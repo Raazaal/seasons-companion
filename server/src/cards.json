@@ -1,0 +1,302 @@
+[
+  {
+    "id": "amulet-of-air",
+    "name": "Amulet of Air",
+    "effects": [],
+    "endGameCrystals": 6
+  },
+  {
+    "id": "amulet-of-fire",
+    "name": "Amulet of Fire",
+    "effects": [],
+    "endGameCrystals": 6
+  },
+  {
+    "id": "amulet-of-earth",
+    "name": "Amulet of Earth",
+    "effects": [{ "target": "self", "amount": 9 }],
+    "endGameCrystals": 6
+  },
+  {
+    "id": "amulet-of-water",
+    "name": "Amulet of Water",
+    "effects": [],
+    "endGameCrystals": 6
+  },
+  {
+    "id": "balance-of-ishtar",
+    "name": "Balance of Ishtar",
+    "effects": [{ "target": "self", "amount": 9 }],
+    "endGameCrystals": 4
+  },
+  {
+    "id": "staff-of-spring",
+    "name": "Staff of Spring",
+    "effects": [],
+    "endGameCrystals": 9
+  },
+  {
+    "id": "temporal-boots",
+    "name": "Temporal Boots",
+    "effects": [],
+    "endGameCrystals": 8
+  },
+  {
+    "id": "purse-of-io",
+    "name": "Purse of Io",
+    "effects": [],
+    "endGameCrystals": 6
+  },
+  {
+    "id": "divine-chalice",
+    "name": "Divine Chalice",
+    "effects": [],
+    "endGameCrystals": 10
+  },
+  {
+    "id": "syllas-the-faithful",
+    "name": "Syllas the Faithful",
+    "effects": [],
+    "endGameCrystals": 14
+  },
+  {
+    "id": "figrim-the-avaricious",
+    "name": "Figrim the Avaricious",
+    "effects": [],
+    "endGameCrystals": 7
+  },
+  {
+    "id": "naria-the-prophetess",
+    "name": "Naria the Prophetess",
+    "effects": [],
+    "endGameCrystals": 8
+  },
+  {
+    "id": "wondrous-chest",
+    "name": "Wondrous Chest",
+    "effects": [],
+    "endGameCrystals": 4
+  },
+  {
+    "id": "beggars-horn",
+    "name": "Beggar's Horn",
+    "effects": [],
+    "endGameCrystals": 8
+  },
+  {
+    "id": "die-of-malice",
+    "name": "Die of Malice",
+    "effects": [{ "target": "self", "amount": 2 }],
+    "endGameCrystals": 8
+  },
+  {
+    "id": "kairn-the-destroyer",
+    "name": "Kairn the Destroyer",
+    "effects": [{ "target": "each_opponent", "amount": -4 }],
+    "endGameCrystals": 9
+  },
+  {
+    "id": "amsug-longneck",
+    "name": "Amsug Longneck",
+    "effects": [],
+    "endGameCrystals": 8
+  },
+  {
+    "id": "bespelled-grimoire",
+    "name": "Bespelled Grimoire",
+    "effects": [],
+    "endGameCrystals": 8
+  },
+  {
+    "id": "ragfields-helm",
+    "name": "Ragfield's Helm",
+    "effects": [],
+    "endGameCrystals": 10
+  },
+  {
+    "id": "hand-of-fortune",
+    "name": "Hand of Fortune",
+    "effects": [],
+    "endGameCrystals": 9
+  },
+  {
+    "id": "lewis-greyface",
+    "name": "Lewis Greyface",
+    "effects": [],
+    "endGameCrystals": 6
+  },
+  {
+    "id": "runic-cube-of-eolis",
+    "name": "Runic Cube of Eolis",
+    "effects": [],
+    "endGameCrystals": 30
+  },
+  {
+    "id": "potion-of-power",
+    "name": "Potion of Power",
+    "effects": [],
+    "endGameCrystals": 0
+  },
+  {
+    "id": "potion-of-dreams",
+    "name": "Potion of Dreams",
+    "effects": [],
+    "endGameCrystals": 0
+  },
+  {
+    "id": "potion-of-knowledge",
+    "name": "Potion of Knowledge",
+    "effects": [],
+    "endGameCrystals": 0
+  },
+  {
+    "id": "potion-of-life",
+    "name": "Potion of Life",
+    "effects": [],
+    "endGameCrystals": 0
+  },
+  {
+    "id": "hourglass-of-time",
+    "name": "Hourglass of Time",
+    "effects": [],
+    "endGameCrystals": 6
+  },
+  {
+    "id": "scepter-of-greatness",
+    "name": "Scepter of Greatness",
+    "effects": [],
+    "endGameCrystals": 8
+  },
+  {
+    "id": "olafs-blessed-statue",
+    "name": "Olaf's Blessed Statue",
+    "effects": [{ "target": "self", "amount": 20 }],
+    "endGameCrystals": 0
+  },
+  {
+    "id": "yjangs-forgotten-vase",
+    "name": "Yjang's Forgotten Vase",
+    "effects": [],
+    "endGameCrystals": 6
+  },
+  {
+    "id": "elemental-amulet",
+    "name": "Elemental Amulet",
+    "effects": [],
+    "endGameCrystals": 2
+  },
+  {
+    "id": "tree-of-light",
+    "name": "Tree of Light",
+    "effects": [],
+    "endGameCrystals": 12
+  },
+  {
+    "id": "arcano-leech",
+    "name": "Arcano Leech",
+    "effects": [],
+    "endGameCrystals": 8
+  },
+  {
+    "id": "crystal-orb",
+    "name": "Crystal Orb",
+    "effects": [],
+    "endGameCrystals": 6
+  },
+  {
+    "id": "glutton-cauldron",
+    "name": "Glutton Cauldron",
+    "effects": [],
+    "endGameCrystals": 0
+  },
+  {
+    "id": "vampiric-crown",
+    "name": "Vampiric Crown",
+    "effects": [],
+    "endGameCrystals": 0
+  },
+  {
+    "id": "dragon-skull",
+    "name": "Dragon Skull",
+    "effects": [{ "target": "self", "amount": 15 }],
+    "endGameCrystals": 9
+  },
+  {
+    "id": "demon-of-argos",
+    "name": "Demon of Argos",
+    "effects": [],
+    "endGameCrystals": 16
+  },
+  {
+    "id": "titus-deepgaze",
+    "name": "Titus Deepgaze",
+    "effects": [],
+    "endGameCrystals": 4
+  },
+  {
+    "id": "air-elemental",
+    "name": "Air Elemental",
+    "effects": [],
+    "endGameCrystals": 12
+  },
+  {
+    "id": "thieving-fairies",
+    "name": "Thieving Fairies",
+    "effects": [],
+    "endGameCrystals": 6
+  },
+  {
+    "id": "cursed-treatise-of-arus",
+    "name": "Cursed Treatise of Arus",
+    "effects": [{ "target": "self", "amount": 10 }],
+    "endGameCrystals": -10
+  },
+  {
+    "id": "idol-of-the-familiar",
+    "name": "Idol of the Familiar",
+    "effects": [{ "target": "self", "amount": 10 }],
+    "endGameCrystals": 0
+  },
+  {
+    "id": "necrotic-kriss",
+    "name": "Necrotic Kriss",
+    "effects": [],
+    "endGameCrystals": 6
+  },
+  {
+    "id": "lantern-of-xidit",
+    "name": "Lantern of Xidit",
+    "effects": [],
+    "endGameCrystals": 24
+  },
+  {
+    "id": "sealed-chest-of-urm",
+    "name": "Sealed Chest of Urm",
+    "effects": [],
+    "endGameCrystals": 10
+  },
+  {
+    "id": "mirror-of-the-seasons",
+    "name": "Mirror of the Seasons",
+    "effects": [],
+    "endGameCrystals": 8
+  },
+  {
+    "id": "pendant-of-ragnor",
+    "name": "Pendant of Ragnor",
+    "effects": [],
+    "endGameCrystals": 0
+  },
+  {
+    "id": "sid-nightshade",
+    "name": "Sid Nightshade",
+    "effects": [],
+    "endGameCrystals": 6
+  },
+  {
+    "id": "damned-soul-of-onys",
+    "name": "Damned Soul of Onys",
+    "effects": [{ "target": "self", "amount": 10 }],
+    "endGameCrystals": -5
+  }
+]
