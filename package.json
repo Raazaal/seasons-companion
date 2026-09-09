@@ -1,0 +1,10 @@
+{
+  "name": "seasons-companion",
+  "private": true,
+  "workspaces": ["server", "client"],
+  "scripts": {
+    "build": "npm run build --workspace client",
+    "start": "npm run start --workspace server",
+    "test": "npm test --workspace server && npm test --workspace client"
+  }
+}
