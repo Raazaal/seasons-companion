@@ -19,6 +19,9 @@ async function main() {
 
   const app = express();
   app.use(express.static(CLIENT_DIST));
+  app.get("/api/cards", (req, res) => {
+    res.json([...cards.values()]);
+  });
   app.get("*", (req, res) => res.sendFile(path.join(CLIENT_DIST, "index.html")));
 
   const server = createServer(app);
