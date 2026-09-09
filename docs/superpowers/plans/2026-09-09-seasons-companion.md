@@ -2615,9 +2615,10 @@ git commit -m "feat(client): final count screen for end-of-game crystal cards"
 **Files:**
 - Modify: `client/src/App.svelte`
 - Test: `client/src/App.test.js`
+- Delete: `client/src/smoke.test.js` — its only assertion (renders "Seasons Companion") is a strict subset of `App.test.js`'s first test, and once `App.svelte` performs real I/O (WebSocket via `createGameStore`, `fetch("/api/cards")`), rendering the unmocked real `App` in that file throws unhandled rejections and fails the overall suite even though its own assertion still passes.
 
 **Interfaces:**
-- Consumes: `createGameStore` (Task 15), `JoinScreen` (Task 16), `Dashboard` (Task 17), `CardPicker` (Task 18), `HistoryScreen` (Task 19), `FinalCountScreen` (Task 20)
+- Consumes: `createGameStore` (Task 15) — returns `{ state, selfPlayerId, error, send }`: three *separate* Svelte stores plus a plain function, not a single store — destructure and alias `state` to avoid colliding with the `$state` rune; `JoinScreen` (Task 16), `Dashboard` (Task 17), `CardPicker` (Task 18), `HistoryScreen` (Task 19), `FinalCountScreen` (Task 20)
 - Produces: the top-level routed app, switching view by `game.state.phase` (`lobby` → join list + `START_GAME`, `playing` → Dashboard/CardPicker/HistoryScreen nav, `final_count` → `FinalCountScreen`, `ended` → final ranking + `NEW_GAME` with a confirmation prompt); fetches the card database once from `GET /api/cards` on mount; once the local player has joined, sets `--player-color` (their chosen color) as a CSS custom property on the root element so buttons/accents reflect it
 
 - [ ] **Step 1: Add a card list HTTP endpoint to the server**
@@ -2784,7 +2785,12 @@ Expected: FAIL (`App.svelte` does not yet render `JoinScreen` / the "Nom" label,
   import FinalCountScreen from "./screens/FinalCountScreen.svelte";
 
   const wsUrl = `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}`;
-  const game = createGameStore(wsUrl);
+  // createGameStore returns three separate Svelte stores plus a plain `send`
+  // function — NOT a single store object, so each one needs its own `$`
+  // auto-subscription. `state` is aliased to `gameState` because Svelte 5
+  // reserves the bare identifier `$state` for the `$state(...)` rune used
+  // below for local component state.
+  const { state: gameState, selfPlayerId, error, send } = createGameStore(wsUrl);
 
   let allCards = $state([]);
   let view = $state("dashboard"); // "dashboard" | "cards" | "history" | "final"
@@ -2794,48 +2800,48 @@ Expected: FAIL (`App.svelte` does not yet render `JoinScreen` / the "Nom" label,
     allCards = await res.json();
   });
 
-  let takenColors = $derived($game.state?.players.map((p) => p.color) ?? []);
-  let selfPlayer = $derived($game.state?.players.find((p) => p.id === $game.selfPlayerId) ?? null);
+  let takenColors = $derived($gameState?.players.map((p) => p.color) ?? []);
+  let selfPlayer = $derived($gameState?.players.find((p) => p.id === $selfPlayerId) ?? null);
   let rootStyle = $derived(selfPlayer ? `--player-color: ${selfPlayer.color};` : "");
 </script>
 
 <main data-testid="app-root" style={rootStyle}>
   <h1>Seasons Companion</h1>
 
-  {#if $game.error}
-    <p role="alert">{$game.error}</p>
+  {#if $error}
+    <p role="alert">{$error}</p>
   {/if}
 
-  {#if !$game.state || !selfPlayer}
-    <JoinScreen {takenColors} onJoin={(name, color) => game.send({ type: "JOIN_GAME", name, color })} />
-  {:else if $game.state.phase === "lobby"}
+  {#if !$gameState || !selfPlayer}
+    <JoinScreen {takenColors} onJoin={(name, color) => send({ type: "JOIN_GAME", name, color })} />
+  {:else if $gameState.phase === "lobby"}
     <section>
       <h2>Salle d'attente</h2>
       <ul>
-        {#each $game.state.players as player (player.id)}
+        {#each $gameState.players as player (player.id)}
           <li style={`color: ${player.color}`}>{player.name}</li>
         {/each}
       </ul>
       <button
         type="button"
-        disabled={$game.state.players.length < 2}
-        onclick={() => game.send({ type: "START_GAME" })}
+        disabled={$gameState.players.length < 2}
+        onclick={() => send({ type: "START_GAME" })}
       >
         Démarrer la partie
       </button>
     </section>
-  {:else if $game.state.phase === "final_count"}
+  {:else if $gameState.phase === "final_count"}
     <FinalCountScreen
       {allCards}
-      players={$game.state.players}
-      onAddFinalCrystals={(playerId, cardId) => game.send({ type: "ADD_FINAL_CRYSTALS", playerId, cardId })}
-      onEndGame={() => game.send({ type: "END_GAME" })}
+      players={$gameState.players}
+      onAddFinalCrystals={(playerId, cardId) => send({ type: "ADD_FINAL_CRYSTALS", playerId, cardId })}
+      onEndGame={() => send({ type: "END_GAME" })}
     />
-  {:else if $game.state.phase === "ended"}
+  {:else if $gameState.phase === "ended"}
     <section>
       <h2>Partie terminée</h2>
       <ul>
-        {#each [...$game.state.players].sort((a, b) => b.score - a.score) as player (player.id)}
+        {#each [...$gameState.players].sort((a, b) => b.score - a.score) as player (player.id)}
           <li style={`color: ${player.color}`}>{`${player.name} — ${player.score}`}</li>
         {/each}
       </ul>
@@ -2843,7 +2849,7 @@ Expected: FAIL (`App.svelte` does not yet render `JoinScreen` / the "Nom" label,
         type="button"
         onclick={() => {
           if (confirm("Démarrer une nouvelle partie ? Cette action efface la partie actuelle.")) {
-            game.send({ type: "NEW_GAME" });
+            send({ type: "NEW_GAME" });
           }
         }}
       >
@@ -2859,21 +2865,21 @@ Expected: FAIL (`App.svelte` does not yet render `JoinScreen` / the "Nom" label,
 
     {#if view === "dashboard"}
       <Dashboard
-        game={$game.state}
-        selfPlayerId={$game.selfPlayerId}
-        onAdjustScore={(delta) => game.send({ type: "ADJUST_SCORE", playerId: $game.selfPlayerId, delta })}
-        onNextTurn={() => game.send({ type: "NEXT_TURN" })}
+        game={$gameState}
+        selfPlayerId={$selfPlayerId}
+        onAdjustScore={(delta) => send({ type: "ADJUST_SCORE", playerId: $selfPlayerId, delta })}
+        onNextTurn={() => send({ type: "NEXT_TURN" })}
       />
     {:else if view === "cards"}
       <CardPicker
         {allCards}
         hand={selfPlayer.hand}
-        onAddCard={(cardId) => game.send({ type: "ADD_CARD_TO_HAND", playerId: $game.selfPlayerId, cardId })}
-        onActivateCard={(cardId) => game.send({ type: "ACTIVATE_CARD", actorPlayerId: $game.selfPlayerId, cardId })}
-        onRemoveCard={(instanceId) => game.send({ type: "REMOVE_CARD_FROM_HAND", playerId: $game.selfPlayerId, instanceId })}
+        onAddCard={(cardId) => send({ type: "ADD_CARD_TO_HAND", playerId: $selfPlayerId, cardId })}
+        onActivateCard={(cardId) => send({ type: "ACTIVATE_CARD", actorPlayerId: $selfPlayerId, cardId })}
+        onRemoveCard={(instanceId) => send({ type: "REMOVE_CARD_FROM_HAND", playerId: $selfPlayerId, instanceId })}
       />
     {:else if view === "history"}
-      <HistoryScreen history={$game.state.history} players={$game.state.players} />
+      <HistoryScreen history={$gameState.history} players={$gameState.players} />
     {/if}
   {/if}
 </main>
@@ -2904,6 +2910,7 @@ Expected: all suites PASS
 
 ```bash
 git add client/src/App.svelte client/src/App.test.js server/src/index.js
+git rm client/src/smoke.test.js
 git commit -m "feat(client): wire lobby/playing/final_count/ended phases together, add start/new-game controls, theme UI by player color"
 ```
 
