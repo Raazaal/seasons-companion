@@ -45,5 +45,7 @@ node server/src/index.js             # lance le serveur (nécessite un build cli
 - [ ] Ajouter une carte à effet "each_opponent", l'activer, vérifier que tous les autres joueurs perdent/gagnent les points, pas l'activateur.
 - [ ] Vérifier que l'écran historique liste bien toutes ces actions, consultable depuis n'importe quel onglet joueur.
 - [ ] Fermer un onglet, le rouvrir sur la même URL : vérifier que le joueur retrouve son score et sa main sans avoir à rejoindre.
-- [ ] Lancer le décompte final, ajouter des cartes à cristaux à un joueur, terminer la partie, vérifier qu'aucune action de score n'est plus possible ensuite.
+- [ ] Lancer le décompte final, ajouter plusieurs cartes de fin de partie (y compris plusieurs fois la même) à son propre score depuis la section "Cartes invoquées", puis en retirer une par erreur et vérifier que le score se recalcule correctement.
+- [ ] Vérifier que "Terminer la partie" reste désactivé tant que chaque joueur n'a pas cliqué sur "J'ai terminé mon décompte", et qu'ajouter/retirer une carte après coup annule ce statut.
+- [ ] Une fois tout le monde prêt, terminer la partie : vérifier le classement final (1er, 2ème, etc., avec gestion des égalités) et qu'aucune action de score n'est plus possible ensuite.
 - [ ] Arrêter le serveur (Ctrl+C) et le relancer : vérifier que la partie reprend exactement où elle en était (scores, historique, phase).
