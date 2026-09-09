@@ -1,7 +1,16 @@
-// server/src/wsServer.js
 import { WebSocketServer } from "ws";
 import { applyAction } from "./gameState.js";
 import { saveState } from "./persistence.js";
+
+// The broadcast STATE payload must never leak a player's private
+// reconnection token to other clients — only the JOINED/reconnect-ack
+// message sent directly to that player's own socket may carry it.
+function toBroadcastState(state) {
+  return {
+    ...state,
+    players: state.players.map((p) => ({ ...p, token: undefined })),
+  };
+}
 
 export function createWsServer(httpServer, { cards, statePath, initialState }) {
   let state = initialState;
@@ -9,13 +18,20 @@ export function createWsServer(httpServer, { cards, statePath, initialState }) {
   const clientPlayerIds = new Map();
 
   function broadcastState() {
-    const payload = JSON.stringify({ type: "STATE", state });
+    const payload = JSON.stringify({ type: "STATE", state: toBroadcastState(state) });
     for (const client of wss.clients) {
       if (client.readyState === client.OPEN) client.send(payload);
     }
   }
 
   wss.on("connection", (ws) => {
+    // Send the current state to the newly-connected socket right away, so a
+    // client that hasn't sent any message yet (e.g. still on the join
+    // screen) already sees an accurate view of the game (taken colors,
+    // current phase, join code) instead of staying stuck on `null` state
+    // until someone else's action triggers a broadcast.
+    ws.send(JSON.stringify({ type: "STATE", state: toBroadcastState(state) }));
+
     ws.on("message", async (raw) => {
       let action;
       try {

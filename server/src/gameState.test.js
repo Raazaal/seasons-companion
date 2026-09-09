@@ -52,6 +52,21 @@ describe("JOIN_GAME", () => {
     const { state: started } = applyAction(state3, { type: "START_GAME" });
     expect(() => applyAction(started, { type: "JOIN_GAME", name: "Carl", color: "green" })).toThrow(GameActionError);
   });
+
+  it("rejects a 5th player once 4 have joined", () => {
+    let state = createInitialState();
+    const names = [
+      ["Alice", "red"],
+      ["Bob", "blue"],
+      ["Carl", "green"],
+      ["Dana", "yellow"],
+    ];
+    for (const [name, color] of names) {
+      ({ state } = applyAction(state, { type: "JOIN_GAME", name, color }));
+    }
+    expect(state.players).toHaveLength(4);
+    expect(() => applyAction(state, { type: "JOIN_GAME", name: "Eve", color: "purple" })).toThrow(GameActionError);
+  });
 });
 
 describe("START_GAME", () => {
@@ -141,6 +156,16 @@ describe("ADJUST_SCORE", () => {
     expect(() => applyAction(joined, { type: "ADJUST_SCORE", playerId: result.playerId, delta: 1 })).toThrow(
       GameActionError,
     );
+  });
+});
+
+describe("history seq", () => {
+  it("increases monotonically across history entries within one game", () => {
+    const { state, alice, bob } = startedTwoPlayerState();
+    const { state: s1 } = applyAction(state, { type: "ADJUST_SCORE", playerId: alice.playerId, delta: 1 });
+    const { state: s2 } = applyAction(s1, { type: "ADJUST_SCORE", playerId: bob.playerId, delta: 1 });
+    const { state: s3 } = applyAction(s2, { type: "ADJUST_SCORE", playerId: alice.playerId, delta: 1 });
+    expect(s3.history.map((entry) => entry.seq)).toEqual([0, 1, 2]);
   });
 });
 

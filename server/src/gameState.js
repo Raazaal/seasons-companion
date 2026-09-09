@@ -53,6 +53,9 @@ function joinGame(state, action) {
   if (state.players.some((p) => p.color === color)) {
     throw new GameActionError(`Color already taken: ${color}`);
   }
+  if (state.players.length >= 4) {
+    throw new GameActionError("La partie est complète (4 joueurs maximum)");
+  }
   const player = {
     id: generateId(),
     token: generateToken(),
@@ -97,7 +100,10 @@ function disconnect(state, action) {
 }
 
 function addHistoryEntry(state, entry) {
-  return { ...state, history: [...state.history, { timestamp: Date.now(), ...entry }] };
+  return {
+    ...state,
+    history: [...state.history, { timestamp: Date.now(), seq: state.history.length, ...entry }],
+  };
 }
 
 function applyScoreDelta(state, playerId, delta, meta) {
