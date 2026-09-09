@@ -1,7 +1,10 @@
 import { describe, it, expect } from "vitest";
+import { render, screen } from "@testing-library/svelte";
+import App from "./App.svelte";
 
-describe("client tooling", () => {
-  it("runs a basic assertion", () => {
-    expect(1 + 1).toBe(2);
+describe("App", () => {
+  it("renders the app title", () => {
+    render(App);
+    expect(screen.getByText("Seasons Companion")).toBeInTheDocument();
   });
 });
