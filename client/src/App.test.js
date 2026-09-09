@@ -195,8 +195,8 @@ describe("App", () => {
     vi.stubGlobal("confirm", vi.fn().mockReturnValue(true));
 
     render(App);
-    expect(screen.getByText("Alice — 12")).toBeInTheDocument();
-    expect(screen.getByText("Bob — 9")).toBeInTheDocument();
+    expect(screen.getByText("1er — Alice")).toBeInTheDocument();
+    expect(screen.getByText("2ème — Bob")).toBeInTheDocument();
     await fireEvent.click(screen.getByRole("button", { name: "Nouvelle partie" }));
     expect(confirm).toHaveBeenCalled();
     expect(send).toHaveBeenCalledWith({ type: "NEW_GAME" });

@@ -184,7 +184,23 @@ function startFinalCount(state) {
     state: {
       ...state,
       phase: "final_count",
-      players: state.players.map((p) => ({ ...p, finalCards: p.finalCards ?? [], finalCountBaseScore: p.score })),
+      players: state.players.map((p) => ({
+        ...p,
+        finalCards: p.finalCards ?? [],
+        finalCountBaseScore: p.score,
+        finalCountReady: false,
+      })),
+    },
+  };
+}
+
+function setFinalCountReady(state, action) {
+  assertPhase(state, ["final_count"]);
+  const player = findPlayer(state, action.playerId);
+  return {
+    state: {
+      ...state,
+      players: state.players.map((p) => (p.id === player.id ? { ...p, finalCountReady: !!action.ready } : p)),
     },
   };
 }
@@ -214,7 +230,9 @@ function addFinalCard(state, action, context) {
   const resultingScore = recomputeFinalScore({ ...player, finalCards }, context.cards);
   const nextState = {
     ...state,
-    players: state.players.map((p) => (p.id === player.id ? { ...p, finalCards, score: resultingScore } : p)),
+    players: state.players.map((p) =>
+      p.id === player.id ? { ...p, finalCards, score: resultingScore, finalCountReady: false } : p,
+    ),
   };
   return {
     state: addHistoryEntry(nextState, {
@@ -241,7 +259,7 @@ function removeFinalCard(state, action, context) {
   const nextState = {
     ...state,
     players: state.players.map((p) =>
-      p.id === player.id ? { ...p, finalCards: nextFinalCards, score: resultingScore } : p,
+      p.id === player.id ? { ...p, finalCards: nextFinalCards, score: resultingScore, finalCountReady: false } : p,
     ),
   };
   return {
@@ -259,6 +277,9 @@ function removeFinalCard(state, action, context) {
 
 function endGame(state) {
   assertPhase(state, ["final_count"]);
+  if (state.players.some((p) => !p.finalCountReady)) {
+    throw new GameActionError("Tous les joueurs doivent confirmer avoir terminé leur décompte");
+  }
   return { state: { ...state, phase: "ended" } };
 }
 
@@ -288,6 +309,8 @@ export function applyAction(state, action, context = {}) {
       return activateCard(state, action, context);
     case "START_FINAL_COUNT":
       return startFinalCount(state, action);
+    case "SET_FINAL_COUNT_READY":
+      return setFinalCountReady(state, action);
     case "ADD_FINAL_CARD":
       return addFinalCard(state, action, context);
     case "REMOVE_FINAL_CARD":

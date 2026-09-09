@@ -418,14 +418,58 @@ describe("final count and end game", () => {
     expect(removed.players.find((p) => p.id === alice.playerId).score).toBe(0);
   });
 
-  it("END_GAME moves phase from final_count to ended and blocks further score actions", () => {
-    const { state, alice } = startedTwoPlayerState();
+  it("END_GAME rejects while any player hasn't confirmed they're done counting", () => {
+    const { state, alice, bob } = startedTwoPlayerState();
     const { state: counting } = applyAction(state, { type: "START_FINAL_COUNT" });
-    const { state: ended } = applyAction(counting, { type: "END_GAME" });
+    const { state: aliceReady } = applyAction(counting, {
+      type: "SET_FINAL_COUNT_READY",
+      playerId: alice.playerId,
+      ready: true,
+    });
+    expect(() => applyAction(aliceReady, { type: "END_GAME" })).toThrow(GameActionError);
+    const { state: bobReadyToo } = applyAction(aliceReady, {
+      type: "SET_FINAL_COUNT_READY",
+      playerId: bob.playerId,
+      ready: true,
+    });
+    const { state: ended } = applyAction(bobReadyToo, { type: "END_GAME" });
+    expect(ended.phase).toBe("ended");
+  });
+
+  it("END_GAME moves phase from final_count to ended and blocks further score actions", () => {
+    const { state, alice, bob } = startedTwoPlayerState();
+    const { state: counting } = applyAction(state, { type: "START_FINAL_COUNT" });
+    const { state: aliceReady } = applyAction(counting, {
+      type: "SET_FINAL_COUNT_READY",
+      playerId: alice.playerId,
+      ready: true,
+    });
+    const { state: bothReady } = applyAction(aliceReady, {
+      type: "SET_FINAL_COUNT_READY",
+      playerId: bob.playerId,
+      ready: true,
+    });
+    const { state: ended } = applyAction(bothReady, { type: "END_GAME" });
     expect(ended.phase).toBe("ended");
     expect(() => applyAction(ended, { type: "ADJUST_SCORE", playerId: alice.playerId, delta: 1 })).toThrow(
       GameActionError,
     );
+  });
+
+  it("adding or removing an invoked card clears that player's ready flag", () => {
+    const { state, alice } = startedTwoPlayerState();
+    const { state: counting } = applyAction(state, { type: "START_FINAL_COUNT" });
+    const { state: ready } = applyAction(counting, {
+      type: "SET_FINAL_COUNT_READY",
+      playerId: alice.playerId,
+      ready: true,
+    });
+    const { state: added } = applyAction(
+      ready,
+      { type: "ADD_FINAL_CARD", playerId: alice.playerId, cardId: "relic" },
+      { cards: cardsWithCrystals },
+    );
+    expect(added.players.find((p) => p.id === alice.playerId).finalCountReady).toBe(false);
   });
 });
 

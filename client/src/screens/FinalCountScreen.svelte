@@ -1,9 +1,12 @@
 <script>
-  let { allCards, players, selfPlayerId, onAddFinalCard, onRemoveFinalCard, onEndGame } = $props();
+  let { allCards, players, selfPlayerId, onAddFinalCard, onRemoveFinalCard, onSetReady, onEndGame } = $props();
 
   let crystalCards = $derived(allCards.filter((c) => c.endGameCrystals !== null));
   let selfPlayer = $derived(players.find((p) => p.id === selfPlayerId));
   let invokedCards = $derived(selfPlayer?.finalCards ?? []);
+  let selfReady = $derived(selfPlayer?.finalCountReady ?? false);
+  let notReadyPlayers = $derived(players.filter((p) => !p.finalCountReady));
+  let allReady = $derived(notReadyPlayers.length === 0);
 
   function cardName(cardId) {
     return allCards.find((c) => c.id === cardId)?.name ?? cardId;
@@ -22,8 +25,11 @@
   <h2 class="mb-3 text-lg font-semibold text-slate-800">Scores</h2>
   <ul class="mb-6 space-y-2">
     {#each players as player (player.id)}
-      <li class="rounded-lg bg-slate-50 px-3 py-2 font-medium" style={`color: ${player.color}`}>
-        {`${player.name} — ${player.score}`}
+      <li class="flex items-center justify-between gap-3 rounded-lg bg-slate-50 px-3 py-2 font-medium" style={`color: ${player.color}`}>
+        <span>{`${player.name} — ${player.score}`}</span>
+        <span class={`text-xs font-semibold ${player.finalCountReady ? "text-emerald-600" : "text-slate-400"}`}>
+          {player.finalCountReady ? "Prêt" : "En cours"}
+        </span>
       </li>
     {/each}
   </ul>
@@ -65,9 +71,23 @@
 
   <button
     type="button"
+    onclick={() => onSetReady(!selfReady)}
+    class={`mb-3 w-full rounded-lg px-4 py-2.5 font-medium transition ${selfReady ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-200" : "bg-slate-100 text-slate-700 hover:bg-slate-200"}`}
+  >
+    {selfReady ? "J'ai terminé mon décompte (annuler)" : "J'ai terminé mon décompte"}
+  </button>
+
+  <button
+    type="button"
     onclick={onEndGame}
-    class="w-full rounded-lg bg-slate-900 px-4 py-2.5 font-medium text-white transition hover:bg-slate-700"
+    disabled={!allReady}
+    class="w-full rounded-lg bg-slate-900 px-4 py-2.5 font-medium text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-300"
   >
     Terminer la partie
   </button>
+  {#if !allReady}
+    <p class="mt-2 text-center text-sm text-slate-500">
+      {`En attente de : ${notReadyPlayers.map((p) => p.name).join(", ")}`}
+    </p>
+  {/if}
 </section>

@@ -1,6 +1,7 @@
 <script>
   import { onMount } from "svelte";
   import { createGameStore } from "./lib/store.js";
+  import { rankPlayers, ordinal } from "./lib/ranking.js";
   import JoinScreen from "./screens/JoinScreen.svelte";
   import Dashboard from "./screens/Dashboard.svelte";
   import CardPicker from "./screens/CardPicker.svelte";
@@ -70,15 +71,20 @@
           selfPlayerId={$selfPlayerId}
           onAddFinalCard={(cardId) => send({ type: "ADD_FINAL_CARD", playerId: $selfPlayerId, cardId })}
           onRemoveFinalCard={(instanceId) => send({ type: "REMOVE_FINAL_CARD", playerId: $selfPlayerId, instanceId })}
+          onSetReady={(ready) => send({ type: "SET_FINAL_COUNT_READY", playerId: $selfPlayerId, ready })}
           onEndGame={() => send({ type: "END_GAME" })}
         />
       {:else if $gameState.phase === "ended"}
         <section>
-          <h2 class="mb-4 text-lg font-semibold text-slate-800">Partie terminée</h2>
+          <h2 class="mb-4 text-lg font-semibold text-slate-800">Classement final</h2>
           <ul class="mb-6 space-y-2">
-            {#each [...$gameState.players].sort((a, b) => b.score - a.score) as player (player.id)}
-              <li class="rounded-lg bg-slate-50 px-3 py-2 font-medium" style={`color: ${player.color}`}>
-                {`${player.name} — ${player.score}`}
+            {#each rankPlayers($gameState.players) as player (player.id)}
+              <li
+                class="flex items-center justify-between gap-3 rounded-lg bg-slate-50 px-3 py-2 font-medium"
+                style={`color: ${player.color}`}
+              >
+                <span>{`${ordinal(player.rank)} — ${player.name}`}</span>
+                <span class="text-lg font-semibold">{player.score}</span>
               </li>
             {/each}
           </ul>
