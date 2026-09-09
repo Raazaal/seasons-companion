@@ -77,6 +77,36 @@ function disconnect(state, action) {
   return { state: nextState };
 }
 
+function addHistoryEntry(state, entry) {
+  return { ...state, history: [...state.history, { timestamp: Date.now(), ...entry }] };
+}
+
+function applyScoreDelta(state, playerId, delta, meta) {
+  const player = findPlayer(state, playerId);
+  const resultingScore = Math.max(0, player.score + delta);
+  const nextState = {
+    ...state,
+    players: state.players.map((p) => (p.id === playerId ? { ...p, score: resultingScore } : p)),
+  };
+  return addHistoryEntry(nextState, { playerId, delta, resultingScore, ...meta });
+}
+
+function adjustScore(state, action) {
+  assertPhase(state, ["playing", "final_count"]);
+  const nextState = applyScoreDelta(state, action.playerId, action.delta, {
+    source: "manual",
+    actorPlayerId: action.playerId,
+  });
+  return { state: nextState };
+}
+
+function nextTurn(state) {
+  assertPhase(state, ["playing"]);
+  const currentIndex = state.turnOrder.indexOf(state.activePlayerId);
+  const nextIndex = (currentIndex + 1) % state.turnOrder.length;
+  return { state: { ...state, activePlayerId: state.turnOrder[nextIndex] } };
+}
+
 export function applyAction(state, action, context = {}) {
   switch (action.type) {
     case "JOIN_GAME":
@@ -87,9 +117,13 @@ export function applyAction(state, action, context = {}) {
       return reconnect(state, action);
     case "DISCONNECT":
       return disconnect(state, action);
+    case "ADJUST_SCORE":
+      return adjustScore(state, action);
+    case "NEXT_TURN":
+      return nextTurn(state, action);
     default:
       throw new GameActionError(`Unknown action type: ${action.type}`);
   }
 }
 
-export { findPlayer, assertPhase };
+export { findPlayer, assertPhase, applyScoreDelta, addHistoryEntry };

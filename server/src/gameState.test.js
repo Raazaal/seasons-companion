@@ -102,3 +102,54 @@ describe("DISCONNECT", () => {
     expect(state3.history).toEqual([]);
   });
 });
+
+function startedTwoPlayerState() {
+  const s1 = createInitialState();
+  const { state: s2, result: alice } = applyAction(s1, { type: "JOIN_GAME", name: "Alice", color: "red" });
+  const { state: s3, result: bob } = applyAction(s2, { type: "JOIN_GAME", name: "Bob", color: "blue" });
+  const { state: started } = applyAction(s3, { type: "START_GAME" });
+  return { state: started, alice, bob };
+}
+
+describe("ADJUST_SCORE", () => {
+  it("applies a positive delta and records history", () => {
+    const { state, alice } = startedTwoPlayerState();
+    const { state: next } = applyAction(state, { type: "ADJUST_SCORE", playerId: alice.playerId, delta: 3 });
+    const player = next.players.find((p) => p.id === alice.playerId);
+    expect(player.score).toBe(3);
+    expect(next.history).toHaveLength(1);
+    expect(next.history[0]).toMatchObject({
+      playerId: alice.playerId,
+      delta: 3,
+      resultingScore: 3,
+      source: "manual",
+      actorPlayerId: alice.playerId,
+    });
+    expect(next.history[0].timestamp).toEqual(expect.any(Number));
+  });
+
+  it("floors the score at 0 on a negative delta", () => {
+    const { state, alice } = startedTwoPlayerState();
+    const { state: next } = applyAction(state, { type: "ADJUST_SCORE", playerId: alice.playerId, delta: -5 });
+    expect(next.players.find((p) => p.id === alice.playerId).score).toBe(0);
+    expect(next.history[0].resultingScore).toBe(0);
+  });
+
+  it("rejects adjustment outside the playing/final_count phases", () => {
+    const state = createInitialState();
+    const { state: joined, result } = applyAction(state, { type: "JOIN_GAME", name: "Alice", color: "red" });
+    expect(() => applyAction(joined, { type: "ADJUST_SCORE", playerId: result.playerId, delta: 1 })).toThrow(
+      GameActionError,
+    );
+  });
+});
+
+describe("NEXT_TURN", () => {
+  it("advances to the next player in turnOrder, wrapping around", () => {
+    const { state, alice, bob } = startedTwoPlayerState();
+    const { state: turn2 } = applyAction(state, { type: "NEXT_TURN" });
+    expect(turn2.activePlayerId).toBe(bob.playerId);
+    const { state: turn3 } = applyAction(turn2, { type: "NEXT_TURN" });
+    expect(turn3.activePlayerId).toBe(alice.playerId);
+  });
+});
