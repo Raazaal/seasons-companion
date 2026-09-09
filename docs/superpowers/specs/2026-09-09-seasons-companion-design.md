@@ -8,10 +8,10 @@ Le jeu de société [Seasons](https://www.libellud.com/nos-jeux/seasons/) (Libel
 
 ## Contraintes d'usage
 
-- Utilisé en présentiel, autour d'une table, sans accès internet garanti.
+- Utilisé en présentiel, autour d'une table. L'app ne dépend d'aucun accès internet — la communication se fait en réseau local entre les téléphones, pas via internet (chaque téléphone peut avoir sa propre data mobile, ça ne les met pas sur le même réseau local pour autant).
 - L'hôte (un des 2-4 joueurs) fait tourner le serveur sur son téléphone Android via **Termux** (pas de PC nécessaire).
 - Les autres joueurs utilisent leur navigateur mobile, sans rien installer.
-- Tous les appareils sont sur le même réseau local (WiFi partagé de préférence, hotspot du téléphone hôte en secours si le réseau isole les clients entre eux).
+- Tous les appareils doivent être sur le même réseau local pour que les clients atteignent le serveur de l'hôte (WiFi partagé de préférence, hotspot du téléphone hôte en secours si le réseau isole les clients entre eux).
 
 ## Architecture
 
