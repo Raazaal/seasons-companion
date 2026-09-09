@@ -6,6 +6,7 @@ import FinalCountScreen from "./FinalCountScreen.svelte";
 const allCards = [
   { id: "gain-self", name: "Gain Self", effects: [{ target: "self", amount: 2 }], endGameCrystals: null },
   { id: "relic", name: "Relic", effects: [], endGameCrystals: 5 },
+  { id: "cursed-treatise-of-arus", name: "Cursed Treatise of Arus", effects: [], endGameCrystals: -10 },
 ];
 
 const players = [
@@ -18,6 +19,12 @@ describe("FinalCountScreen", () => {
     render(FinalCountScreen, { allCards, players, onAddFinalCrystals: () => {}, onEndGame: () => {} });
     expect(screen.getByText("Relic (+5)")).toBeInTheDocument();
     expect(screen.queryByText(/Gain Self/)).not.toBeInTheDocument();
+  });
+
+  it("shows a negative end-game crystal value with a minus sign, not a literal '+-'", () => {
+    render(FinalCountScreen, { allCards, players, onAddFinalCrystals: () => {}, onEndGame: () => {} });
+    expect(screen.getByText("Cursed Treatise of Arus (-10)")).toBeInTheDocument();
+    expect(screen.queryByText(/\+-/)).not.toBeInTheDocument();
   });
 
   it("calls onAddFinalCrystals with the player and card when added for that player", async () => {

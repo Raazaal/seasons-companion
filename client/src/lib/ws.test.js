@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { createConnection } from "./ws.js";
 
 class FakeWebSocket {
@@ -36,6 +36,10 @@ beforeEach(() => {
   localStorage.clear();
 });
 
+afterEach(() => {
+  vi.useRealTimers();
+});
+
 describe("createConnection", () => {
   it("sends a RECONNECT with the stored token on open", () => {
     localStorage.setItem("seasons-companion-token", "abc123");
@@ -64,10 +68,82 @@ describe("createConnection", () => {
     expect(JSON.parse(socket.lastSent)).toEqual({ type: "ADJUST_SCORE", playerId: "p1", delta: 1 });
   });
 
-  it("reconnects after the socket closes", () => {
+  it("reconnects after the socket closes, with a delay (capped exponential backoff)", () => {
+    vi.useFakeTimers();
     createConnection({ url: "ws://x", onMessage: () => {} });
     expect(FakeWebSocket.instances).toHaveLength(1);
+
     FakeWebSocket.instances[0].emitClose();
+    // No new socket immediately — reconnect is delayed, not instant.
+    expect(FakeWebSocket.instances).toHaveLength(1);
+
+    // With jitter the delay is between 0.5x and 1.5x the base delay (500ms),
+    // so advancing well past the upper bound guarantees the reconnect fired.
+    vi.advanceTimersByTime(1000);
     expect(FakeWebSocket.instances).toHaveLength(2);
+
+    vi.useRealTimers();
+  });
+
+  it("doubles the reconnect delay on repeated closes, capped at 10s", () => {
+    vi.useFakeTimers();
+    createConnection({ url: "ws://x", onMessage: () => {} });
+
+    // First close: base delay ~500ms (jittered up to 750ms) — not enough
+    // time has passed after only 200ms.
+    FakeWebSocket.instances[0].emitClose();
+    vi.advanceTimersByTime(200);
+    expect(FakeWebSocket.instances).toHaveLength(1);
+    vi.advanceTimersByTime(1000);
+    expect(FakeWebSocket.instances).toHaveLength(2);
+
+    // Second close without an intervening successful open: delay should
+    // have doubled to ~1000ms (jittered up to 1500ms) — 700ms isn't enough.
+    FakeWebSocket.instances[1].emitClose();
+    vi.advanceTimersByTime(700);
+    expect(FakeWebSocket.instances).toHaveLength(2);
+    vi.advanceTimersByTime(1000);
+    expect(FakeWebSocket.instances).toHaveLength(3);
+
+    vi.useRealTimers();
+  });
+
+  it("resets the reconnect delay to the initial value after a successful open", () => {
+    vi.useFakeTimers();
+    createConnection({ url: "ws://x", onMessage: () => {} });
+
+    // Close, then reconnect and successfully open — this should reset the
+    // backoff delay back down to the initial ~500ms instead of staying
+    // doubled.
+    FakeWebSocket.instances[0].emitClose();
+    vi.advanceTimersByTime(1000);
+    expect(FakeWebSocket.instances).toHaveLength(2);
+    FakeWebSocket.instances[1].emitOpen();
+
+    FakeWebSocket.instances[1].emitClose();
+    vi.advanceTimersByTime(200);
+    expect(FakeWebSocket.instances).toHaveLength(2); // not yet — delay reset to ~500ms, not doubled
+    vi.advanceTimersByTime(1000);
+    expect(FakeWebSocket.instances).toHaveLength(3);
+
+    vi.useRealTimers();
+  });
+});
+
+describe("ERROR handling", () => {
+  it("clears the stored token when an ERROR reports an invalid reconnection token", () => {
+    localStorage.setItem("seasons-companion-token", "stale-token");
+    createConnection({ url: "ws://x", onMessage: () => {} });
+    const socket = FakeWebSocket.instances[0];
+    socket.emitMessage({ type: "ERROR", message: "Invalid reconnection token" });
+    expect(localStorage.getItem("seasons-companion-token")).toBeNull();
+  });
+
+  it("leaves the stored token alone for unrelated errors", () => {
+    localStorage.setItem("seasons-companion-token", "abc123");
+    createConnection({ url: "ws://x", onMessage: () => {} });
+    const socket = FakeWebSocket.instances[0];
+    socket.emitMessage({ type: "ERROR", message: "Color already taken: red" });
+    expect(localStorage.getItem("seasons-companion-token")).toBe("abc123");
   });
 });

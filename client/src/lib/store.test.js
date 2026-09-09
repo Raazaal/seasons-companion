@@ -34,4 +34,12 @@ describe("createGameStore", () => {
     globalThis.__lastOnMessage({ type: "ERROR", message: "boom" });
     expect(get(store.error)).toBe("boom");
   });
+
+  it("clears a previous error once a STATE message arrives", () => {
+    const store = createGameStore("ws://x");
+    globalThis.__lastOnMessage({ type: "ERROR", message: "boom" });
+    expect(get(store.error)).toBe("boom");
+    globalThis.__lastOnMessage({ type: "STATE", state: { phase: "lobby" } });
+    expect(get(store.error)).toBeNull();
+  });
 });

@@ -18,4 +18,14 @@ describe("JoinScreen", () => {
     render(JoinScreen, { takenColors: [], onJoin: () => {} });
     expect(screen.getByRole("button", { name: "Rejoindre" })).toBeDisabled();
   });
+
+  it("shows the join code when provided", () => {
+    render(JoinScreen, { takenColors: [], joinCode: "AB12", onJoin: () => {} });
+    expect(screen.getByText("Code de partie : AB12")).toBeInTheDocument();
+  });
+
+  it("does not show a join code line when none is available yet", () => {
+    render(JoinScreen, { takenColors: [], onJoin: () => {} });
+    expect(screen.queryByText(/Code de partie/)).not.toBeInTheDocument();
+  });
 });

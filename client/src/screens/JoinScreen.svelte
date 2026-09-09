@@ -1,7 +1,7 @@
 <script>
   import ColorPicker from "../components/ColorPicker.svelte";
 
-  let { takenColors = [], onJoin } = $props();
+  let { takenColors = [], joinCode = null, onJoin } = $props();
   let name = $state("");
   let color = $state(null);
 
@@ -11,6 +11,10 @@
     }
   }
 </script>
+
+{#if joinCode}
+  <p>Code de partie : {joinCode}</p>
+{/if}
 
 <form onsubmit={(e) => { e.preventDefault(); submit(); }}>
   <label for="player-name">Nom</label>

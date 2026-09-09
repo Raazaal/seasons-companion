@@ -1,4 +1,3 @@
-<!-- client/src/screens/HistoryScreen.svelte -->
 <script>
   let { history, players } = $props();
 
@@ -12,7 +11,7 @@
     <p>Aucune modification pour le moment.</p>
   {:else}
     <ul>
-      {#each [...history].reverse() as entry (entry.timestamp + entry.playerId + entry.delta)}
+      {#each [...history].reverse() as entry (entry.seq)}
         <li>
           <span>{playerName(entry.playerId)}</span>
           <span>{entry.delta > 0 ? `+${entry.delta}` : entry.delta}</span>

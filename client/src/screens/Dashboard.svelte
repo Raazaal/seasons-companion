@@ -1,4 +1,3 @@
-<!-- client/src/screens/Dashboard.svelte -->
 <script>
   let { game, selfPlayerId, onAdjustScore, onNextTurn } = $props();
 </script>
@@ -20,3 +19,11 @@
 
   <button type="button" onclick={onNextTurn}>Joueur suivant</button>
 </section>
+
+<style>
+  li.active {
+    border-left: 4px solid var(--player-color, #333);
+    font-weight: bold;
+    background: rgba(0, 0, 0, 0.05);
+  }
+</style>

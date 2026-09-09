@@ -1,4 +1,3 @@
-<!-- client/src/App.svelte -->
 <script>
   import { onMount } from "svelte";
   import { createGameStore } from "./lib/store.js";
@@ -34,7 +33,11 @@
   {/if}
 
   {#if !$gameState || !selfPlayer}
-    <JoinScreen {takenColors} onJoin={(name, color) => send({ type: "JOIN_GAME", name, color })} />
+    <JoinScreen
+      {takenColors}
+      joinCode={$gameState?.joinCode}
+      onJoin={(name, color) => send({ type: "JOIN_GAME", name, color })}
+    />
   {:else if $gameState.phase === "lobby"}
     <section>
       <h2>Salle d'attente</h2>
@@ -82,6 +85,16 @@
       <button type="button" onclick={() => (view = "dashboard")}>Score</button>
       <button type="button" onclick={() => (view = "cards")}>Cartes</button>
       <button type="button" onclick={() => (view = "history")}>Historique</button>
+      <button
+        type="button"
+        onclick={() => {
+          if (confirm("Passer au décompte final ? Cette action est définitive pour cette partie.")) {
+            send({ type: "START_FINAL_COUNT" });
+          }
+        }}
+      >
+        Décompte final
+      </button>
     </nav>
 
     {#if view === "dashboard"}

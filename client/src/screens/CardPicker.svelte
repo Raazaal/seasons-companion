@@ -1,4 +1,3 @@
-<!-- client/src/screens/CardPicker.svelte -->
 <script>
   let { allCards, hand, onAddCard, onActivateCard, onRemoveCard } = $props();
 

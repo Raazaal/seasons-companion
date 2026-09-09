@@ -98,6 +98,81 @@ describe("App", () => {
     expect(send).toHaveBeenCalledWith({ type: "START_GAME" });
   });
 
+  it("passes the game state's joinCode through to JoinScreen before joining", async () => {
+    const { writable } = await import("svelte/store");
+    const { createGameStore } = await import("./lib/store.js");
+    createGameStore.mockReturnValueOnce({
+      state: writable({
+        joinCode: "AB12",
+        phase: "lobby",
+        activePlayerId: null,
+        turnOrder: [],
+        players: [],
+        history: [],
+      }),
+      selfPlayerId: writable(null),
+      error: writable(null),
+      send: vi.fn(),
+    });
+
+    render(App);
+    expect(screen.getByText("Code de partie : AB12")).toBeInTheDocument();
+  });
+
+  it("sends START_FINAL_COUNT after confirmation when the 'Décompte final' button is clicked during play", async () => {
+    const { writable } = await import("svelte/store");
+    const { createGameStore } = await import("./lib/store.js");
+    const send = vi.fn();
+    createGameStore.mockReturnValueOnce({
+      state: writable({
+        phase: "playing",
+        activePlayerId: "p1",
+        turnOrder: ["p1", "p2"],
+        players: [
+          { id: "p1", name: "Alice", color: "red", score: 0, hand: [] },
+          { id: "p2", name: "Bob", color: "blue", score: 0, hand: [] },
+        ],
+        history: [],
+      }),
+      selfPlayerId: writable("p1"),
+      error: writable(null),
+      send,
+    });
+    vi.stubGlobal("confirm", vi.fn().mockReturnValue(true));
+
+    render(App);
+    await fireEvent.click(screen.getByRole("button", { name: "Décompte final" }));
+    expect(confirm).toHaveBeenCalled();
+    expect(send).toHaveBeenCalledWith({ type: "START_FINAL_COUNT" });
+  });
+
+  it("does not send START_FINAL_COUNT when the confirmation is declined", async () => {
+    const { writable } = await import("svelte/store");
+    const { createGameStore } = await import("./lib/store.js");
+    const send = vi.fn();
+    createGameStore.mockReturnValueOnce({
+      state: writable({
+        phase: "playing",
+        activePlayerId: "p1",
+        turnOrder: ["p1", "p2"],
+        players: [
+          { id: "p1", name: "Alice", color: "red", score: 0, hand: [] },
+          { id: "p2", name: "Bob", color: "blue", score: 0, hand: [] },
+        ],
+        history: [],
+      }),
+      selfPlayerId: writable("p1"),
+      error: writable(null),
+      send,
+    });
+    vi.stubGlobal("confirm", vi.fn().mockReturnValue(false));
+
+    render(App);
+    await fireEvent.click(screen.getByRole("button", { name: "Décompte final" }));
+    expect(confirm).toHaveBeenCalled();
+    expect(send).not.toHaveBeenCalledWith({ type: "START_FINAL_COUNT" });
+  });
+
   it("shows final scores and sends NEW_GAME after confirmation once the game has ended", async () => {
     const { writable } = await import("svelte/store");
     const { createGameStore } = await import("./lib/store.js");

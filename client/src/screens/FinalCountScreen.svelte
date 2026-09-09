@@ -1,15 +1,18 @@
-<!-- client/src/screens/FinalCountScreen.svelte -->
 <script>
   let { allCards, players, onAddFinalCrystals, onEndGame } = $props();
 
   let crystalCards = $derived(allCards.filter((c) => c.endGameCrystals !== null));
+
+  function signed(amount) {
+    return amount > 0 ? `+${amount}` : `${amount}`;
+  }
 </script>
 
 <section>
   <h2>Cartes de fin de partie</h2>
   <ul>
     {#each crystalCards as card (card.id)}
-      <li>{`${card.name} (+${card.endGameCrystals})`}</li>
+      <li>{`${card.name} (${signed(card.endGameCrystals)})`}</li>
     {/each}
   </ul>
 
@@ -20,7 +23,7 @@
         {#each crystalCards as card (card.id)}
           <li>
             <button type="button" onclick={() => onAddFinalCrystals(player.id, card.id)}>
-              {`Ajouter ${card.name} (+${card.endGameCrystals}) à ${player.name}`}
+              {`Ajouter ${card.name} (${signed(card.endGameCrystals)}) à ${player.name}`}
             </button>
           </li>
         {/each}
