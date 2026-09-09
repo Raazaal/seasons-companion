@@ -54,7 +54,7 @@ Une seule partie active par instance de serveur — pas de gestion multi-session
 
 ## Modèle de données
 
-**Carte** (`cards.json`, base du jeu de base uniquement — ~72 cartes) :
+**Carte** (`cards.json`, base du jeu de base uniquement — 50 cartes, chiffre confirmé lors de l'implémentation par lecture directe de la règle officielle : « There are 50 different Power cards, with two copies of each » ; le chiffre de ~72 initialement estimé pendant le brainstorming était approximatif) :
 ```ts
 {
   id: string,
@@ -142,7 +142,7 @@ Fichier unique `server/data/game-state.json`, ré-écrit en entier après chaque
 | Sujet | Décision |
 |---|---|
 | Réseau | Téléphone hôte sous Termux + Node.js, autres joueurs en navigateur, WiFi partagé (hotspot en secours) |
-| Cartes | Base de données prédéfinie, jeu de base uniquement (~72 cartes) |
+| Cartes | Base de données prédéfinie, jeu de base uniquement (50 cartes, confirmé via la règle officielle) |
 | Activation carte | Répétable sans limite |
 | Décompte final | Étape séparée et manuelle, réutilise la base de cartes |
 | Reconnexion | Token privé en `localStorage`, état conservé côté serveur |
