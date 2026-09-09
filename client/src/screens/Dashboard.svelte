@@ -20,17 +20,17 @@
   <div class="mb-4 flex gap-3">
     <button
       type="button"
-      onclick={() => onAdjustScore(1)}
-      class="flex-1 rounded-lg bg-emerald-100 py-2.5 text-lg font-semibold text-emerald-800 transition hover:bg-emerald-200"
-    >
-      +1
-    </button>
-    <button
-      type="button"
       onclick={() => onAdjustScore(-1)}
       class="flex-1 rounded-lg bg-rose-100 py-2.5 text-lg font-semibold text-rose-800 transition hover:bg-rose-200"
     >
       -1
+    </button>
+    <button
+      type="button"
+      onclick={() => onAdjustScore(1)}
+      class="flex-1 rounded-lg bg-emerald-100 py-2.5 text-lg font-semibold text-emerald-800 transition hover:bg-emerald-200"
+    >
+      +1
     </button>
   </div>
 
