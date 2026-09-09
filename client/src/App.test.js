@@ -27,7 +27,8 @@ beforeEach(() => {
 describe("App", () => {
   it("shows the join screen when there is no player yet", () => {
     render(App);
-    expect(screen.getByText("Seasons Companion")).toBeInTheDocument();
+    expect(screen.getByAltText("Seasons")).toBeInTheDocument();
+    expect(screen.getByText("Companion")).toBeInTheDocument();
     expect(screen.getByLabelText("Nom")).toBeInTheDocument();
   });
 

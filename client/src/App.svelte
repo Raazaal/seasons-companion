@@ -28,9 +28,10 @@
 
 <main data-testid="app-root" style={rootStyle} class="min-h-screen flex flex-col items-center px-4 py-8 sm:py-12">
   <div class="w-full max-w-2xl">
-    <h1 class="text-3xl font-bold tracking-tight text-center mb-6 text-[var(--player-color,var(--color-slate-800))]">
-      Seasons Companion
-    </h1>
+    <div class="mb-6 text-center">
+      <img src="/seasons-logo.png" alt="Seasons" class="mx-auto h-auto w-full max-w-xs" />
+      <p class="mt-1 text-sm font-semibold uppercase tracking-widest text-slate-500">Companion</p>
+    </div>
 
     {#if $error}
       <p role="alert" class="mb-4 rounded-lg border border-red-300 bg-red-50 px-4 py-2 text-sm text-red-700">
