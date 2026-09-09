@@ -50,6 +50,8 @@ Le jeu de société [Seasons](https://www.libellud.com/nos-jeux/seasons/) (Libel
 
 Une seule partie active par instance de serveur — pas de gestion multi-sessions.
 
+**Thématisation par couleur** : une fois qu'un joueur a rejoint la partie, l'interface de son propre téléphone adopte sa couleur choisie comme teinte d'accent (boutons, bordures, éléments actifs) — pas seulement un badge coloré dans la liste des joueurs. Techniquement, la couleur du joueur courant est posée comme variable CSS (`--player-color`) sur le conteneur racine de l'app dès qu'il a rejoint.
+
 ## Modèle de données
 
 **Carte** (`cards.json`, base du jeu de base uniquement — ~72 cartes) :
