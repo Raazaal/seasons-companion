@@ -71,3 +71,34 @@ describe("START_GAME", () => {
     expect(started.activePlayerId).toBe(state3.players[0].id);
   });
 });
+
+describe("RECONNECT", () => {
+  it("marks the matching player connected and returns their id", () => {
+    const state1 = createInitialState();
+    const { state: state2, result: joinResult } = applyAction(state1, {
+      type: "JOIN_GAME",
+      name: "Alice",
+      color: "red",
+    });
+    const disconnected = { ...state2, players: state2.players.map((p) => ({ ...p, connected: false })) };
+    const { state: state3, result } = applyAction(disconnected, { type: "RECONNECT", token: joinResult.token });
+    expect(result.playerId).toBe(joinResult.playerId);
+    expect(state3.players[0].connected).toBe(true);
+  });
+
+  it("rejects an unknown token", () => {
+    const state = createInitialState();
+    expect(() => applyAction(state, { type: "RECONNECT", token: "nope" })).toThrow(GameActionError);
+  });
+});
+
+describe("DISCONNECT", () => {
+  it("marks the player disconnected without touching score or history", () => {
+    const state1 = createInitialState();
+    const { state: state2, result } = applyAction(state1, { type: "JOIN_GAME", name: "Alice", color: "red" });
+    const { state: state3 } = applyAction(state2, { type: "DISCONNECT", playerId: result.playerId });
+    expect(state3.players[0].connected).toBe(false);
+    expect(state3.players[0].score).toBe(0);
+    expect(state3.history).toEqual([]);
+  });
+});

@@ -58,12 +58,35 @@ function startGame(state) {
   };
 }
 
+function reconnect(state, action) {
+  const player = state.players.find((p) => p.token === action.token);
+  if (!player) throw new GameActionError("Invalid reconnection token");
+  const nextState = {
+    ...state,
+    players: state.players.map((p) => (p.id === player.id ? { ...p, connected: true } : p)),
+  };
+  return { state: nextState, result: { playerId: player.id } };
+}
+
+function disconnect(state, action) {
+  findPlayer(state, action.playerId);
+  const nextState = {
+    ...state,
+    players: state.players.map((p) => (p.id === action.playerId ? { ...p, connected: false } : p)),
+  };
+  return { state: nextState };
+}
+
 export function applyAction(state, action, context = {}) {
   switch (action.type) {
     case "JOIN_GAME":
       return joinGame(state, action);
     case "START_GAME":
       return startGame(state, action);
+    case "RECONNECT":
+      return reconnect(state, action);
+    case "DISCONNECT":
+      return disconnect(state, action);
     default:
       throw new GameActionError(`Unknown action type: ${action.type}`);
   }
