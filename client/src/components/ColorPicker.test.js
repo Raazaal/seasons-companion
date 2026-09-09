@@ -4,15 +4,15 @@ import ColorPicker from "./ColorPicker.svelte";
 
 describe("ColorPicker", () => {
   it("disables colors already taken", () => {
-    render(ColorPicker, { takenColors: ["red"], selected: null, onSelect: () => {} });
-    expect(screen.getByRole("button", { name: "red" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "blue" })).toBeEnabled();
+    render(ColorPicker, { takenColors: ["purple"], selected: null, onSelect: () => {} });
+    expect(screen.getByRole("button", { name: "Violet" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Vert clair" })).toBeEnabled();
   });
 
   it("calls onSelect with the clicked color", async () => {
     const onSelect = vi.fn();
     render(ColorPicker, { takenColors: [], selected: null, onSelect });
-    await fireEvent.click(screen.getByRole("button", { name: "blue" }));
-    expect(onSelect).toHaveBeenCalledWith("blue");
+    await fireEvent.click(screen.getByRole("button", { name: "Vert clair" }));
+    expect(onSelect).toHaveBeenCalledWith("lightgreen");
   });
 });

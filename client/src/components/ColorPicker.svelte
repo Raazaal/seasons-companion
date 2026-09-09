@@ -1,18 +1,26 @@
 <script>
-  const COLOR_PALETTE = ["red", "blue", "green", "yellow"];
+  // `value` is the CSS color stored on the player and used to render it
+  // everywhere (score list, history, player highlight); `label` is the
+  // French name shown to players and used as the button's accessible name.
+  const COLOR_PALETTE = [
+    { value: "purple", label: "Violet" },
+    { value: "lightgreen", label: "Vert clair" },
+    { value: "gray", label: "Gris" },
+    { value: "orange", label: "Orange" },
+  ];
 
   let { takenColors = [], selected = null, onSelect } = $props();
 </script>
 
 <div class="color-picker flex gap-2">
-  {#each COLOR_PALETTE as color}
+  {#each COLOR_PALETTE as { value, label }}
     <button
       type="button"
-      aria-label={color}
-      class:selected={selected === color}
-      disabled={takenColors.includes(color)}
-      onclick={() => onSelect(color)}
-      style={`background-color: ${color};`}
+      aria-label={label}
+      class:selected={selected === value}
+      disabled={takenColors.includes(value)}
+      onclick={() => onSelect(value)}
+      style={`background-color: ${value};`}
       class="h-10 w-10 rounded-full ring-offset-2 transition disabled:cursor-not-allowed disabled:opacity-30"
     ></button>
   {/each}

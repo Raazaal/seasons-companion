@@ -8,10 +8,10 @@ describe("JoinScreen", () => {
     render(JoinScreen, { takenColors: [], onJoin });
 
     await fireEvent.input(screen.getByLabelText("Nom"), { target: { value: "Alice" } });
-    await fireEvent.click(screen.getByRole("button", { name: "red" }));
+    await fireEvent.click(screen.getByRole("button", { name: "Violet" }));
     await fireEvent.click(screen.getByRole("button", { name: "Rejoindre" }));
 
-    expect(onJoin).toHaveBeenCalledWith("Alice", "red");
+    expect(onJoin).toHaveBeenCalledWith("Alice", "purple");
   });
 
   it("disables the join button until a name and color are chosen", async () => {
