@@ -67,6 +67,7 @@
         <FinalCountScreen
           {allCards}
           players={$gameState.players}
+          selfPlayerId={$selfPlayerId}
           onAddFinalCrystals={(playerId, cardId) => send({ type: "ADD_FINAL_CRYSTALS", playerId, cardId })}
           onEndGame={() => send({ type: "END_GAME" })}
         />
