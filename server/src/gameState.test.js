@@ -271,3 +271,63 @@ describe("ACTIVATE_CARD", () => {
     expect(twice.players.find((p) => p.id === alice.playerId).score).toBe(4);
   });
 });
+
+describe("final count and end game", () => {
+  it("START_FINAL_COUNT moves phase from playing to final_count", () => {
+    const { state } = startedTwoPlayerState();
+    const { state: next } = applyAction(state, { type: "START_FINAL_COUNT" });
+    expect(next.phase).toBe("final_count");
+  });
+
+  it("ADD_FINAL_CRYSTALS rejects a card with no end-game value", () => {
+    const { state, alice } = startedTwoPlayerState();
+    const { state: counting } = applyAction(state, { type: "START_FINAL_COUNT" });
+    expect(() =>
+      applyAction(
+        counting,
+        { type: "ADD_FINAL_CRYSTALS", playerId: alice.playerId, cardId: "gain-self" },
+        { cards: TEST_CARDS },
+      ),
+    ).toThrow(GameActionError);
+  });
+
+  it("ADD_FINAL_CRYSTALS applies a positive end-game value", () => {
+    const cardsWithCrystals = new Map(TEST_CARDS);
+    cardsWithCrystals.set("relic", {
+      id: "relic",
+      name: "Relic",
+      effects: [],
+      endGameCrystals: 5,
+    });
+    const { state, alice } = startedTwoPlayerState();
+    const { state: counting } = applyAction(state, { type: "START_FINAL_COUNT" });
+    const { state: next } = applyAction(
+      counting,
+      { type: "ADD_FINAL_CRYSTALS", playerId: alice.playerId, cardId: "relic" },
+      { cards: cardsWithCrystals },
+    );
+    expect(next.players.find((p) => p.id === alice.playerId).score).toBe(5);
+    expect(next.history[0]).toMatchObject({ source: "final_count", cardId: "relic", cardName: "Relic" });
+  });
+
+  it("END_GAME moves phase from final_count to ended and blocks further score actions", () => {
+    const { state, alice } = startedTwoPlayerState();
+    const { state: counting } = applyAction(state, { type: "START_FINAL_COUNT" });
+    const { state: ended } = applyAction(counting, { type: "END_GAME" });
+    expect(ended.phase).toBe("ended");
+    expect(() => applyAction(ended, { type: "ADJUST_SCORE", playerId: alice.playerId, delta: 1 })).toThrow(
+      GameActionError,
+    );
+  });
+});
+
+describe("NEW_GAME", () => {
+  it("resets to a fresh lobby with a new join code and no players", () => {
+    const { state } = startedTwoPlayerState();
+    const { state: next } = applyAction(state, { type: "NEW_GAME" });
+    expect(next.phase).toBe("lobby");
+    expect(next.players).toEqual([]);
+    expect(next.history).toEqual([]);
+    expect(next.joinCode).toEqual(expect.any(String));
+  });
+});

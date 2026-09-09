@@ -171,6 +171,35 @@ function activateCard(state, action, context) {
   return { state: nextState };
 }
 
+function startFinalCount(state) {
+  assertPhase(state, ["playing"]);
+  return { state: { ...state, phase: "final_count" } };
+}
+
+function addFinalCrystals(state, action, context) {
+  assertPhase(state, ["final_count"]);
+  const card = requireCard(context, action.cardId);
+  if (card.endGameCrystals === null || card.endGameCrystals === undefined) {
+    throw new GameActionError(`Card ${card.id} has no end-game crystal value`);
+  }
+  const nextState = applyScoreDelta(state, action.playerId, card.endGameCrystals, {
+    source: "final_count",
+    actorPlayerId: action.playerId,
+    cardId: card.id,
+    cardName: card.name,
+  });
+  return { state: nextState };
+}
+
+function endGame(state) {
+  assertPhase(state, ["final_count"]);
+  return { state: { ...state, phase: "ended" } };
+}
+
+function newGame() {
+  return { state: createInitialState() };
+}
+
 export function applyAction(state, action, context = {}) {
   switch (action.type) {
     case "JOIN_GAME":
@@ -191,6 +220,14 @@ export function applyAction(state, action, context = {}) {
       return removeCardFromHand(state, action);
     case "ACTIVATE_CARD":
       return activateCard(state, action, context);
+    case "START_FINAL_COUNT":
+      return startFinalCount(state, action);
+    case "ADD_FINAL_CRYSTALS":
+      return addFinalCrystals(state, action, context);
+    case "END_GAME":
+      return endGame(state, action);
+    case "NEW_GAME":
+      return newGame(state, action);
     default:
       throw new GameActionError(`Unknown action type: ${action.type}`);
   }
