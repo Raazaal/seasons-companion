@@ -2568,6 +2568,13 @@ Expected: FAIL with "Cannot find module"
 </script>
 
 <section>
+  <h2>Cartes de fin de partie</h2>
+  <ul>
+    {#each crystalCards as card (card.id)}
+      <li>{`${card.name} (+${card.endGameCrystals})`}</li>
+    {/each}
+  </ul>
+
   {#each players as player (player.id)}
     <div>
       <h3>{player.name} — {player.score}</h3>
@@ -2587,7 +2594,7 @@ Expected: FAIL with "Cannot find module"
 </section>
 ```
 
-Note the button label uses `card.name + " (+" + card.endGameCrystals + ")"` inline, matching what the test asserts for the visible text (`"Relic (+5)"`) via the button's accessible name.
+The standalone `<ul>` at the top (one `"{name} (+{value})"` entry per eligible card, outside the per-player loop) exists because `getByText("Relic (+5)")` in the test below requires an element whose exact text content is `"Relic (+5)"` — the per-player button's full label (`"Ajouter Relic (+5) à Alice"`) never matches that exactly, only as a substring, so a standalone element carrying just that text is required for the test to find it.
 
 - [ ] **Step 4: Run to verify it passes**
 
