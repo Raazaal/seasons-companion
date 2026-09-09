@@ -22,6 +22,8 @@
             <span class="text-slate-500">{`carte ${entry.cardName} déclenché par ${playerName(entry.actorPlayerId)}`}</span>
           {:else if entry.source === "final_count"}
             <span class="text-slate-500">{`décompte final — ${entry.cardName}`}</span>
+          {:else if entry.source === "final_count_removal"}
+            <span class="text-slate-500">{`décompte final (retrait) — ${entry.cardName}`}</span>
           {:else}
             <span class="text-slate-500">ajustement manuel</span>
           {/if}

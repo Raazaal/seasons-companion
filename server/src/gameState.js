@@ -63,6 +63,7 @@ function joinGame(state, action) {
     color,
     score: 0,
     hand: [],
+    finalCards: [],
     connected: true,
   };
   const nextState = { ...state, players: [...state.players, player] };
@@ -179,22 +180,81 @@ function activateCard(state, action, context) {
 
 function startFinalCount(state) {
   assertPhase(state, ["playing"]);
-  return { state: { ...state, phase: "final_count" } };
+  return {
+    state: {
+      ...state,
+      phase: "final_count",
+      players: state.players.map((p) => ({ ...p, finalCards: p.finalCards ?? [], finalCountBaseScore: p.score })),
+    },
+  };
 }
 
-function addFinalCrystals(state, action, context) {
+// The final-count score is always recomputed from scratch (base score at the
+// start of final count + the crystal values of every currently-invoked card)
+// rather than accumulated via one-off deltas. That's what makes removing a
+// wrongly-added card exact instead of drifting: there's no separate "undo"
+// delta to get subtly wrong, just a fresh sum over whatever cards remain.
+function recomputeFinalScore(player, cards) {
+  const base = player.finalCountBaseScore ?? player.score;
+  const sum = (player.finalCards ?? []).reduce((total, entry) => {
+    const card = cards?.get(entry.cardId);
+    return total + (card?.endGameCrystals ?? 0);
+  }, 0);
+  return Math.max(0, base + sum);
+}
+
+function addFinalCard(state, action, context) {
   assertPhase(state, ["final_count"]);
   const card = requireCard(context, action.cardId);
   if (card.endGameCrystals === null || card.endGameCrystals === undefined) {
     throw new GameActionError(`Card ${card.id} has no end-game crystal value`);
   }
-  const nextState = applyScoreDelta(state, action.playerId, card.endGameCrystals, {
-    source: "final_count",
-    actorPlayerId: action.playerId,
-    cardId: card.id,
-    cardName: card.name,
-  });
-  return { state: nextState };
+  const player = findPlayer(state, action.playerId);
+  const finalCards = [...(player.finalCards ?? []), { cardId: card.id, instanceId: generateId() }];
+  const resultingScore = recomputeFinalScore({ ...player, finalCards }, context.cards);
+  const nextState = {
+    ...state,
+    players: state.players.map((p) => (p.id === player.id ? { ...p, finalCards, score: resultingScore } : p)),
+  };
+  return {
+    state: addHistoryEntry(nextState, {
+      playerId: player.id,
+      delta: card.endGameCrystals,
+      resultingScore,
+      source: "final_count",
+      actorPlayerId: player.id,
+      cardId: card.id,
+      cardName: card.name,
+    }),
+  };
+}
+
+function removeFinalCard(state, action, context) {
+  assertPhase(state, ["final_count"]);
+  const player = findPlayer(state, action.playerId);
+  const finalCards = player.finalCards ?? [];
+  const instance = finalCards.find((c) => c.instanceId === action.instanceId);
+  if (!instance) throw new GameActionError(`Unknown final card instance: ${action.instanceId}`);
+  const card = requireCard(context, instance.cardId);
+  const nextFinalCards = finalCards.filter((c) => c.instanceId !== action.instanceId);
+  const resultingScore = recomputeFinalScore({ ...player, finalCards: nextFinalCards }, context.cards);
+  const nextState = {
+    ...state,
+    players: state.players.map((p) =>
+      p.id === player.id ? { ...p, finalCards: nextFinalCards, score: resultingScore } : p,
+    ),
+  };
+  return {
+    state: addHistoryEntry(nextState, {
+      playerId: player.id,
+      delta: -card.endGameCrystals,
+      resultingScore,
+      source: "final_count_removal",
+      actorPlayerId: player.id,
+      cardId: card.id,
+      cardName: card.name,
+    }),
+  };
 }
 
 function endGame(state) {
@@ -228,8 +288,10 @@ export function applyAction(state, action, context = {}) {
       return activateCard(state, action, context);
     case "START_FINAL_COUNT":
       return startFinalCount(state, action);
-    case "ADD_FINAL_CRYSTALS":
-      return addFinalCrystals(state, action, context);
+    case "ADD_FINAL_CARD":
+      return addFinalCard(state, action, context);
+    case "REMOVE_FINAL_CARD":
+      return removeFinalCard(state, action, context);
     case "END_GAME":
       return endGame(state, action);
     case "NEW_GAME":

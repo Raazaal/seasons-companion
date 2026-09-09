@@ -68,7 +68,8 @@
           {allCards}
           players={$gameState.players}
           selfPlayerId={$selfPlayerId}
-          onAddFinalCrystals={(playerId, cardId) => send({ type: "ADD_FINAL_CRYSTALS", playerId, cardId })}
+          onAddFinalCard={(cardId) => send({ type: "ADD_FINAL_CARD", playerId: $selfPlayerId, cardId })}
+          onRemoveFinalCard={(instanceId) => send({ type: "REMOVE_FINAL_CARD", playerId: $selfPlayerId, instanceId })}
           onEndGame={() => send({ type: "END_GAME" })}
         />
       {:else if $gameState.phase === "ended"}

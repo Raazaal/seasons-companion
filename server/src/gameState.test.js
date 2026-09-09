@@ -304,35 +304,118 @@ describe("final count and end game", () => {
     expect(next.phase).toBe("final_count");
   });
 
-  it("ADD_FINAL_CRYSTALS rejects a card with no end-game value", () => {
+  it("START_FINAL_COUNT initializes an empty invoked-cards list and freezes the base score", () => {
+    const { state, alice } = startedTwoPlayerState();
+    const { state: adjusted } = applyAction(state, { type: "ADJUST_SCORE", playerId: alice.playerId, delta: 3 });
+    const { state: counting } = applyAction(adjusted, { type: "START_FINAL_COUNT" });
+    const player = counting.players.find((p) => p.id === alice.playerId);
+    expect(player.finalCards).toEqual([]);
+    expect(player.finalCountBaseScore).toBe(3);
+  });
+
+  const cardsWithCrystals = new Map(TEST_CARDS);
+  cardsWithCrystals.set("relic", { id: "relic", name: "Relic", effects: [], endGameCrystals: 5 });
+  cardsWithCrystals.set("cursed-relic", { id: "cursed-relic", name: "Cursed Relic", effects: [], endGameCrystals: -10 });
+
+  it("ADD_FINAL_CARD rejects a card with no end-game value", () => {
     const { state, alice } = startedTwoPlayerState();
     const { state: counting } = applyAction(state, { type: "START_FINAL_COUNT" });
     expect(() =>
       applyAction(
         counting,
-        { type: "ADD_FINAL_CRYSTALS", playerId: alice.playerId, cardId: "gain-self" },
+        { type: "ADD_FINAL_CARD", playerId: alice.playerId, cardId: "gain-self" },
         { cards: TEST_CARDS },
       ),
     ).toThrow(GameActionError);
   });
 
-  it("ADD_FINAL_CRYSTALS applies a positive end-game value", () => {
-    const cardsWithCrystals = new Map(TEST_CARDS);
-    cardsWithCrystals.set("relic", {
-      id: "relic",
-      name: "Relic",
-      effects: [],
-      endGameCrystals: 5,
-    });
+  it("ADD_FINAL_CARD records the card in the player's invoked list and applies its value", () => {
     const { state, alice } = startedTwoPlayerState();
     const { state: counting } = applyAction(state, { type: "START_FINAL_COUNT" });
     const { state: next } = applyAction(
       counting,
-      { type: "ADD_FINAL_CRYSTALS", playerId: alice.playerId, cardId: "relic" },
+      { type: "ADD_FINAL_CARD", playerId: alice.playerId, cardId: "relic" },
       { cards: cardsWithCrystals },
     );
-    expect(next.players.find((p) => p.id === alice.playerId).score).toBe(5);
+    const player = next.players.find((p) => p.id === alice.playerId);
+    expect(player.score).toBe(5);
+    expect(player.finalCards).toHaveLength(1);
+    expect(player.finalCards[0]).toMatchObject({ cardId: "relic" });
+    expect(player.finalCards[0].instanceId).toEqual(expect.any(String));
     expect(next.history[0]).toMatchObject({ source: "final_count", cardId: "relic", cardName: "Relic" });
+  });
+
+  it("allows adding the same card more than once", () => {
+    const { state, alice } = startedTwoPlayerState();
+    const { state: counting } = applyAction(state, { type: "START_FINAL_COUNT" });
+    const { state: once } = applyAction(
+      counting,
+      { type: "ADD_FINAL_CARD", playerId: alice.playerId, cardId: "relic" },
+      { cards: cardsWithCrystals },
+    );
+    const { state: twice } = applyAction(
+      once,
+      { type: "ADD_FINAL_CARD", playerId: alice.playerId, cardId: "relic" },
+      { cards: cardsWithCrystals },
+    );
+    const player = twice.players.find((p) => p.id === alice.playerId);
+    expect(player.score).toBe(10);
+    expect(player.finalCards).toHaveLength(2);
+  });
+
+  it("REMOVE_FINAL_CARD reverses the card's value and removes it from the invoked list", () => {
+    const { state, alice } = startedTwoPlayerState();
+    const { state: counting } = applyAction(state, { type: "START_FINAL_COUNT" });
+    const { state: added } = applyAction(
+      counting,
+      { type: "ADD_FINAL_CARD", playerId: alice.playerId, cardId: "relic" },
+      { cards: cardsWithCrystals },
+    );
+    const instanceId = added.players.find((p) => p.id === alice.playerId).finalCards[0].instanceId;
+    const { state: removed } = applyAction(
+      added,
+      { type: "REMOVE_FINAL_CARD", playerId: alice.playerId, instanceId },
+      { cards: cardsWithCrystals },
+    );
+    const player = removed.players.find((p) => p.id === alice.playerId);
+    expect(player.score).toBe(0);
+    expect(player.finalCards).toEqual([]);
+    expect(removed.history.at(-1)).toMatchObject({ source: "final_count_removal", cardId: "relic" });
+  });
+
+  it("REMOVE_FINAL_CARD rejects an unknown instanceId", () => {
+    const { state, alice } = startedTwoPlayerState();
+    const { state: counting } = applyAction(state, { type: "START_FINAL_COUNT" });
+    expect(() =>
+      applyAction(
+        counting,
+        { type: "REMOVE_FINAL_CARD", playerId: alice.playerId, instanceId: "nope" },
+        { cards: cardsWithCrystals },
+      ),
+    ).toThrow(GameActionError);
+  });
+
+  it("recomputes the score from the remaining invoked cards, not a running delta, so removal after a floor is exact", () => {
+    // Regression guard: if the score were adjusted via one-off +/- deltas
+    // instead of being recomputed from the invoked-card list, a negative
+    // card that gets floored at 0 would "give back" too much once removed
+    // (undoing a floored delta overshoots). Recomputing from scratch avoids
+    // that entirely.
+    const { state, alice } = startedTwoPlayerState();
+    const { state: counting } = applyAction(state, { type: "START_FINAL_COUNT" });
+    const { state: cursed } = applyAction(
+      counting,
+      { type: "ADD_FINAL_CARD", playerId: alice.playerId, cardId: "cursed-relic" },
+      { cards: cardsWithCrystals },
+    );
+    expect(cursed.players.find((p) => p.id === alice.playerId).score).toBe(0);
+    const instanceId = cursed.players.find((p) => p.id === alice.playerId).finalCards[0].instanceId;
+    const { state: removed } = applyAction(
+      cursed,
+      { type: "REMOVE_FINAL_CARD", playerId: alice.playerId, instanceId },
+      { cards: cardsWithCrystals },
+    );
+    expect(removed.players.find((p) => p.id === alice.playerId).score).toBe(0);
   });
 
   it("END_GAME moves phase from final_count to ended and blocks further score actions", () => {
