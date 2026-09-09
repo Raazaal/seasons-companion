@@ -1480,6 +1480,18 @@ describe("createWsServer", () => {
     const ws = new WebSocket(baseUrl);
     await new Promise((resolve) => ws.once("open", resolve));
 
+    // ADJUST_SCORE checks the game phase before it looks up the player, so
+    // an unknown playerId only surfaces "Unknown player" once the game is
+    // actually in the "playing" phase — get it there first.
+    ws.send(JSON.stringify({ type: "JOIN_GAME", name: "Alice", color: "red" }));
+    await nextMessage(ws); // JOINED
+    await nextMessage(ws); // STATE
+    ws.send(JSON.stringify({ type: "JOIN_GAME", name: "Bob", color: "blue" }));
+    await nextMessage(ws); // JOINED
+    await nextMessage(ws); // STATE
+    ws.send(JSON.stringify({ type: "START_GAME" }));
+    await nextMessage(ws); // STATE (phase: playing)
+
     const errorPromise = nextMessage(ws);
     ws.send(JSON.stringify({ type: "ADJUST_SCORE", playerId: "unknown", delta: 1 }));
     const error = await errorPromise;
