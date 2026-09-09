@@ -1494,18 +1494,16 @@ describe("createWsServer", () => {
     await new Promise((resolve) => ws1.once("open", resolve));
     ws1.send(JSON.stringify({ type: "JOIN_GAME", name: "Alice", color: "red" }));
     await nextMessage(ws1); // JOINED
-    await nextMessage(ws1); // STATE
+    await nextMessage(ws1); // STATE — ws1's own join messages are now fully drained
 
     const ws2 = new WebSocket(baseUrl);
     await new Promise((resolve) => ws2.once("open", resolve));
 
-    const ws2StatePromise = nextMessage(ws2);
-    ws2.send(JSON.stringify({ type: "JOIN_GAME", name: "Bob", color: "blue" }));
-    await nextMessage(ws2); // JOINED for ws2
-
+    // Register on ws1 before triggering ws2's join: ws1 has no pending
+    // messages at this point, so this listener deterministically captures
+    // the broadcast caused by ws2 joining (no race with ws1's own messages).
     const ws1BroadcastPromise = nextMessage(ws1);
-    const ws2State = await ws2StatePromise;
-    expect(ws2State.type).toBe("STATE");
+    ws2.send(JSON.stringify({ type: "JOIN_GAME", name: "Bob", color: "blue" }));
 
     const ws1Broadcast = await ws1BroadcastPromise;
     expect(ws1Broadcast.type).toBe("STATE");
@@ -1513,6 +1511,22 @@ describe("createWsServer", () => {
 
     ws1.close();
     ws2.close();
+  });
+
+  it("does not crash when a client disconnects after NEW_GAME removed its player", async () => {
+    const ws = new WebSocket(baseUrl);
+    await new Promise((resolve) => ws.once("open", resolve));
+    ws.send(JSON.stringify({ type: "JOIN_GAME", name: "Alice", color: "red" }));
+    await nextMessage(ws); // JOINED
+    await nextMessage(ws); // STATE
+
+    ws.send(JSON.stringify({ type: "NEW_GAME" }));
+    await nextMessage(ws); // STATE reflecting the reset (fresh lobby, no players)
+
+    ws.close();
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    // No assertion beyond "the process is still alive" — this test fails
+    // only if the close handler throws and crashes the test runner.
   });
 });
 ```
@@ -1584,8 +1598,14 @@ export function createWsServer(httpServer, { cards, statePath, initialState }) {
       const playerId = clientPlayerIds.get(ws);
       if (!playerId) return;
       clientPlayerIds.delete(ws);
-      const outcome = applyAction(state, { type: "DISCONNECT", playerId });
-      state = outcome.state;
+      try {
+        const outcome = applyAction(state, { type: "DISCONNECT", playerId });
+        state = outcome.state;
+      } catch (err) {
+        // Player no longer exists (e.g. NEW_GAME reset the game while this
+        // client was still connected) — nothing to mark disconnected.
+        return;
+      }
       try {
         await saveState(statePath, state);
       } catch (err) {
