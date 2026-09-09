@@ -86,11 +86,17 @@ describe("createConnection", () => {
   });
 
   it("doubles the reconnect delay on repeated closes, capped at 10s", () => {
+    // Jitter is `delay * (0.5 + Math.random())`, i.e. a range straddling
+    // the base delay. A fixed 700ms probe between the two delay tiers
+    // (500ms/1000ms) falls inside the real jitter range on either side
+    // ~20% of the time, making this test flaky without a deterministic
+    // Math.random. Pin it to the midpoint (0.5 -> exactly 1.0x, no jitter)
+    // so the assertions are exact rather than probabilistic.
+    vi.spyOn(Math, "random").mockReturnValue(0.5);
     vi.useFakeTimers();
     createConnection({ url: "ws://x", onMessage: () => {} });
 
-    // First close: base delay ~500ms (jittered up to 750ms) — not enough
-    // time has passed after only 200ms.
+    // First close: delay is exactly 500ms with Math.random pinned.
     FakeWebSocket.instances[0].emitClose();
     vi.advanceTimersByTime(200);
     expect(FakeWebSocket.instances).toHaveLength(1);
@@ -98,7 +104,7 @@ describe("createConnection", () => {
     expect(FakeWebSocket.instances).toHaveLength(2);
 
     // Second close without an intervening successful open: delay should
-    // have doubled to ~1000ms (jittered up to 1500ms) — 700ms isn't enough.
+    // have doubled to exactly 1000ms.
     FakeWebSocket.instances[1].emitClose();
     vi.advanceTimersByTime(700);
     expect(FakeWebSocket.instances).toHaveLength(2);
@@ -106,6 +112,7 @@ describe("createConnection", () => {
     expect(FakeWebSocket.instances).toHaveLength(3);
 
     vi.useRealTimers();
+    vi.restoreAllMocks();
   });
 
   it("resets the reconnect delay to the initial value after a successful open", () => {
