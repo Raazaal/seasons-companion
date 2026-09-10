@@ -18,8 +18,12 @@
             {entry.delta > 0 ? `+${entry.delta}` : entry.delta}
           </span>
           <span class="text-slate-500">{`→ ${entry.resultingScore}`}</span>
-          {#if entry.source === "card_effect"}
-            <span class="text-slate-500">{`carte ${entry.cardName} déclenché par ${playerName(entry.actorPlayerId)}`}</span>
+          {#if entry.source === "steal" && entry.delta > 0}
+            <span class="text-slate-500">{`a volé ${entry.delta} point(s) à ${playerName(entry.opponentPlayerId)}`}</span>
+          {:else if entry.source === "steal"}
+            <span class="text-slate-500">{`s'est fait voler ${-entry.delta} point(s) par ${playerName(entry.actorPlayerId)}`}</span>
+          {:else if entry.source === "group_penalty"}
+            <span class="text-slate-500">{`perte collective infligée par ${playerName(entry.actorPlayerId)}`}</span>
           {:else if entry.source === "final_count"}
             <span class="text-slate-500">{`décompte final — ${entry.cardName}`}</span>
           {:else if entry.source === "final_count_removal"}

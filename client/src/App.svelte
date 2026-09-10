@@ -4,7 +4,6 @@
   import { rankPlayers, ordinal } from "./lib/ranking.js";
   import JoinScreen from "./screens/JoinScreen.svelte";
   import Dashboard from "./screens/Dashboard.svelte";
-  import CardPicker from "./screens/CardPicker.svelte";
   import HistoryScreen from "./screens/HistoryScreen.svelte";
   import FinalCountScreen from "./screens/FinalCountScreen.svelte";
 
@@ -14,7 +13,7 @@
   const { state: gameState, selfPlayerId, error, send } = createGameStore(wsUrl);
 
   let allCards = $state([]);
-  let view = $state("dashboard"); // "dashboard" | "cards" | "history" | "final"
+  let view = $state("dashboard"); // "dashboard" | "history" | "final"
 
   onMount(async () => {
     const res = await fetch("/api/cards");
@@ -112,13 +111,6 @@
           </button>
           <button
             type="button"
-            onclick={() => (view = "cards")}
-            class={`rounded-full px-4 py-1.5 text-sm font-medium transition ${view === "cards" ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-700 hover:bg-slate-200"}`}
-          >
-            Cartes
-          </button>
-          <button
-            type="button"
             onclick={() => (view = "history")}
             class={`rounded-full px-4 py-1.5 text-sm font-medium transition ${view === "history" ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-700 hover:bg-slate-200"}`}
           >
@@ -142,15 +134,10 @@
             game={$gameState}
             selfPlayerId={$selfPlayerId}
             onAdjustScore={(delta) => send({ type: "ADJUST_SCORE", playerId: $selfPlayerId, delta })}
+            onStealAllOpponents={(amount) => send({ type: "STEAL_ALL_OPPONENTS", actorPlayerId: $selfPlayerId, amount })}
+            onPenaltyAllOpponents={(amount) =>
+              send({ type: "PENALTY_ALL_OPPONENTS", actorPlayerId: $selfPlayerId, amount })}
             onNextTurn={() => send({ type: "NEXT_TURN" })}
-          />
-        {:else if view === "cards"}
-          <CardPicker
-            {allCards}
-            hand={selfPlayer.hand}
-            onAddCard={(cardId) => send({ type: "ADD_CARD_TO_HAND", playerId: $selfPlayerId, cardId })}
-            onActivateCard={(cardId) => send({ type: "ACTIVATE_CARD", actorPlayerId: $selfPlayerId, cardId })}
-            onRemoveCard={(instanceId) => send({ type: "REMOVE_CARD_FROM_HAND", playerId: $selfPlayerId, instanceId })}
           />
         {:else if view === "history"}
           <HistoryScreen history={$gameState.history} players={$gameState.players} />

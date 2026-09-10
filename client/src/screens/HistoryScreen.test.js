@@ -16,21 +16,38 @@ const history = [
     playerId: "p2",
     delta: -1,
     resultingScore: 0,
-    source: "card_effect",
+    source: "steal",
     actorPlayerId: "p1",
-    cardId: "drain",
-    cardName: "Drain",
+  },
+  {
+    seq: 2,
+    timestamp: 2000,
+    playerId: "p1",
+    delta: 1,
+    resultingScore: 4,
+    source: "steal",
+    actorPlayerId: "p1",
+    opponentPlayerId: "p2",
+  },
+  {
+    seq: 3,
+    timestamp: 3000,
+    playerId: "p2",
+    delta: -2,
+    resultingScore: 0,
+    source: "group_penalty",
+    actorPlayerId: "p1",
   },
 ];
 
 describe("HistoryScreen", () => {
   it("lists every entry with player names resolved and delta sign shown", () => {
     render(HistoryScreen, { history, players });
-    expect(screen.getByText("Alice")).toBeInTheDocument();
+    expect(screen.getAllByText("Alice").length).toBeGreaterThan(0);
     expect(screen.getByText("+3")).toBeInTheDocument();
-    expect(screen.getByText("-1")).toBeInTheDocument();
-    expect(screen.getByText(/Drain/)).toBeInTheDocument();
-    expect(screen.getByText(/déclenché par Alice/)).toBeInTheDocument();
+    expect(screen.getByText(/s'est fait voler 1 point\(s\) par Alice/)).toBeInTheDocument();
+    expect(screen.getByText(/a volé 1 point\(s\) à Bob/)).toBeInTheDocument();
+    expect(screen.getByText(/perte collective infligée par Alice/)).toBeInTheDocument();
   });
 
   it("shows a placeholder when history is empty", () => {

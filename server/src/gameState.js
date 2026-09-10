@@ -8,19 +8,6 @@ function requireCard(context, cardId) {
   return card;
 }
 
-function effectTargets(effect, actorPlayerId, players) {
-  switch (effect.target) {
-    case "self":
-      return [actorPlayerId];
-    case "each_opponent":
-      return players.filter((p) => p.id !== actorPlayerId).map((p) => p.id);
-    case "all_players":
-      return players.map((p) => p.id);
-    default:
-      throw new GameActionError(`Unknown effect target: ${effect.target}`);
-  }
-}
-
 export function createInitialState() {
   return {
     joinCode: generateJoinCode(),
@@ -62,7 +49,6 @@ function joinGame(state, action) {
     name,
     color,
     score: 0,
-    hand: [],
     finalCards: [],
     connected: true,
   };
@@ -133,47 +119,37 @@ function nextTurn(state) {
   return { state: { ...state, activePlayerId: state.turnOrder[nextIndex] } };
 }
 
-function addCardToHand(state, action, context) {
+function stealAllOpponents(state, action) {
   assertPhase(state, ["playing"]);
-  const card = requireCard(context, action.cardId);
-  const player = findPlayer(state, action.playerId);
-  const instance = { cardId: card.id, instanceId: generateId() };
-  return {
-    state: {
-      ...state,
-      players: state.players.map((p) => (p.id === player.id ? { ...p, hand: [...p.hand, instance] } : p)),
-    },
-  };
-}
-
-function removeCardFromHand(state, action) {
-  assertPhase(state, ["playing"]);
-  const player = findPlayer(state, action.playerId);
-  return {
-    state: {
-      ...state,
-      players: state.players.map((p) =>
-        p.id === player.id ? { ...p, hand: p.hand.filter((c) => c.instanceId !== action.instanceId) } : p,
-      ),
-    },
-  };
-}
-
-function activateCard(state, action, context) {
-  assertPhase(state, ["playing"]);
-  const card = requireCard(context, action.cardId);
-  findPlayer(state, action.actorPlayerId);
+  const actor = findPlayer(state, action.actorPlayerId);
   let nextState = state;
-  for (const effect of card.effects) {
-    const targets = effectTargets(effect, action.actorPlayerId, state.players);
-    for (const targetPlayerId of targets) {
-      nextState = applyScoreDelta(nextState, targetPlayerId, effect.amount, {
-        source: "card_effect",
-        actorPlayerId: action.actorPlayerId,
-        cardId: card.id,
-        cardName: card.name,
-      });
-    }
+  for (const opponent of state.players) {
+    if (opponent.id === actor.id) continue;
+    const actualTaken = Math.min(action.amount, opponent.score);
+    if (actualTaken <= 0) continue;
+    nextState = applyScoreDelta(nextState, opponent.id, -actualTaken, {
+      source: "steal",
+      actorPlayerId: actor.id,
+    });
+    nextState = applyScoreDelta(nextState, actor.id, actualTaken, {
+      source: "steal",
+      actorPlayerId: actor.id,
+      opponentPlayerId: opponent.id,
+    });
+  }
+  return { state: nextState };
+}
+
+function penaltyAllOpponents(state, action) {
+  assertPhase(state, ["playing"]);
+  const actor = findPlayer(state, action.actorPlayerId);
+  let nextState = state;
+  for (const opponent of state.players) {
+    if (opponent.id === actor.id) continue;
+    nextState = applyScoreDelta(nextState, opponent.id, -action.amount, {
+      source: "group_penalty",
+      actorPlayerId: actor.id,
+    });
   }
   return { state: nextState };
 }
@@ -301,12 +277,10 @@ export function applyAction(state, action, context = {}) {
       return adjustScore(state, action);
     case "NEXT_TURN":
       return nextTurn(state, action);
-    case "ADD_CARD_TO_HAND":
-      return addCardToHand(state, action, context);
-    case "REMOVE_CARD_FROM_HAND":
-      return removeCardFromHand(state, action);
-    case "ACTIVATE_CARD":
-      return activateCard(state, action, context);
+    case "STEAL_ALL_OPPONENTS":
+      return stealAllOpponents(state, action);
+    case "PENALTY_ALL_OPPONENTS":
+      return penaltyAllOpponents(state, action);
     case "START_FINAL_COUNT":
       return startFinalCount(state, action);
     case "SET_FINAL_COUNT_READY":

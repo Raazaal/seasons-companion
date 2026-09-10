@@ -14,7 +14,7 @@ describe("createInitialState", () => {
 });
 
 describe("JOIN_GAME", () => {
-  it("adds a player with score 0 and an empty hand, and returns their id/token", () => {
+  it("adds a player with score 0, and returns their id/token", () => {
     const state = createInitialState();
     const { state: next, result } = applyAction(state, {
       type: "JOIN_GAME",
@@ -26,7 +26,6 @@ describe("JOIN_GAME", () => {
       name: "Alice",
       color: "red",
       score: 0,
-      hand: [],
       connected: true,
     });
     expect(result.playerId).toBe(next.players[0].id);
@@ -180,120 +179,73 @@ describe("NEXT_TURN", () => {
 });
 
 const TEST_CARDS = new Map([
-  ["gain-self", { id: "gain-self", name: "Gain Self", effects: [{ target: "self", amount: 2 }], endGameCrystals: null }],
-  [
-    "drain-opponents",
-    {
-      id: "drain-opponents",
-      name: "Drain Opponents",
-      effects: [{ target: "each_opponent", amount: -3 }],
-      endGameCrystals: null,
-    },
-  ],
-  [
-    "bonus-all",
-    { id: "bonus-all", name: "Bonus All", effects: [{ target: "all_players", amount: 1 }], endGameCrystals: null },
-  ],
+  ["gain-self", { id: "gain-self", name: "Gain Self", effects: [], endGameCrystals: null }],
 ]);
 
-describe("ADD_CARD_TO_HAND / REMOVE_CARD_FROM_HAND", () => {
-  it("adds a card instance to the player's hand", () => {
-    const { state, alice } = startedTwoPlayerState();
-    const { state: next } = applyAction(
-      state,
-      { type: "ADD_CARD_TO_HAND", playerId: alice.playerId, cardId: "gain-self" },
-      { cards: TEST_CARDS },
-    );
-    const hand = next.players.find((p) => p.id === alice.playerId).hand;
-    expect(hand).toHaveLength(1);
-    expect(hand[0].cardId).toBe("gain-self");
-    expect(hand[0].instanceId).toEqual(expect.any(String));
-  });
+function startedThreePlayerState() {
+  const s1 = createInitialState();
+  const { state: s2, result: alice } = applyAction(s1, { type: "JOIN_GAME", name: "Alice", color: "red" });
+  const { state: s3, result: bob } = applyAction(s2, { type: "JOIN_GAME", name: "Bob", color: "blue" });
+  const { state: s4, result: carl } = applyAction(s3, { type: "JOIN_GAME", name: "Carl", color: "green" });
+  const { state: started } = applyAction(s4, { type: "START_GAME" });
+  return { state: started, alice, bob, carl };
+}
 
-  it("rejects an unknown cardId", () => {
-    const { state, alice } = startedTwoPlayerState();
-    expect(() =>
-      applyAction(state, { type: "ADD_CARD_TO_HAND", playerId: alice.playerId, cardId: "nope" }, { cards: TEST_CARDS }),
-    ).toThrow(GameActionError);
-  });
-
-  it("removes a card instance by instanceId", () => {
-    const { state, alice } = startedTwoPlayerState();
-    const { state: added } = applyAction(
-      state,
-      { type: "ADD_CARD_TO_HAND", playerId: alice.playerId, cardId: "gain-self" },
-      { cards: TEST_CARDS },
-    );
-    const instanceId = added.players.find((p) => p.id === alice.playerId).hand[0].instanceId;
-    const { state: removed } = applyAction(added, {
-      type: "REMOVE_CARD_FROM_HAND",
-      playerId: alice.playerId,
-      instanceId,
+describe("STEAL_ALL_OPPONENTS", () => {
+  it("takes the amount from every opponent and gives the actor the sum", () => {
+    const { state, alice, bob, carl } = startedThreePlayerState();
+    const { state: s1 } = applyAction(state, { type: "ADJUST_SCORE", playerId: bob.playerId, delta: 5 });
+    const { state: s2 } = applyAction(s1, { type: "ADJUST_SCORE", playerId: carl.playerId, delta: 5 });
+    const { state: next } = applyAction(s2, {
+      type: "STEAL_ALL_OPPONENTS",
+      actorPlayerId: alice.playerId,
+      amount: 2,
     });
-    expect(removed.players.find((p) => p.id === alice.playerId).hand).toEqual([]);
+    expect(next.players.find((p) => p.id === alice.playerId).score).toBe(4);
+    expect(next.players.find((p) => p.id === bob.playerId).score).toBe(3);
+    expect(next.players.find((p) => p.id === carl.playerId).score).toBe(3);
+  });
+
+  it("takes only what an opponent has and ignores an opponent with 0", () => {
+    const { state, alice, bob, carl } = startedThreePlayerState();
+    const { state: s1 } = applyAction(state, { type: "ADJUST_SCORE", playerId: bob.playerId, delta: 1 });
+    const { state: next } = applyAction(s1, {
+      type: "STEAL_ALL_OPPONENTS",
+      actorPlayerId: alice.playerId,
+      amount: 2,
+    });
+    expect(next.players.find((p) => p.id === alice.playerId).score).toBe(1);
+    expect(next.players.find((p) => p.id === bob.playerId).score).toBe(0);
+    expect(next.players.find((p) => p.id === carl.playerId).score).toBe(0);
+    expect(next.history).toHaveLength(3);
+  });
+
+  it("records nothing when no opponent has any points", () => {
+    const { state, alice } = startedThreePlayerState();
+    const { state: next } = applyAction(state, {
+      type: "STEAL_ALL_OPPONENTS",
+      actorPlayerId: alice.playerId,
+      amount: 1,
+    });
+    expect(next.players.find((p) => p.id === alice.playerId).score).toBe(0);
+    expect(next.history).toEqual([]);
   });
 });
 
-describe("ACTIVATE_CARD", () => {
-  it("applies a self effect only to the actor", () => {
-    const { state, alice, bob } = startedTwoPlayerState();
-    const { state: next } = applyAction(
-      state,
-      { type: "ACTIVATE_CARD", actorPlayerId: alice.playerId, cardId: "gain-self" },
-      { cards: TEST_CARDS },
-    );
-    expect(next.players.find((p) => p.id === alice.playerId).score).toBe(2);
-    expect(next.players.find((p) => p.id === bob.playerId).score).toBe(0);
-    expect(next.history).toHaveLength(1);
-    expect(next.history[0]).toMatchObject({
-      playerId: alice.playerId,
-      delta: 2,
-      source: "card_effect",
+describe("PENALTY_ALL_OPPONENTS", () => {
+  it("removes the amount from every opponent, flooring at 0, without changing the actor's score", () => {
+    const { state, alice, bob, carl } = startedThreePlayerState();
+    const { state: s1 } = applyAction(state, { type: "ADJUST_SCORE", playerId: bob.playerId, delta: 5 });
+    const { state: next } = applyAction(s1, {
+      type: "PENALTY_ALL_OPPONENTS",
       actorPlayerId: alice.playerId,
-      cardId: "gain-self",
-      cardName: "Gain Self",
+      amount: 2,
     });
-  });
-
-  it("applies an each_opponent effect to every player except the actor, flooring at 0", () => {
-    const { state, alice, bob } = startedTwoPlayerState();
-    const { state: next } = applyAction(
-      state,
-      { type: "ACTIVATE_CARD", actorPlayerId: alice.playerId, cardId: "drain-opponents" },
-      { cards: TEST_CARDS },
-    );
     expect(next.players.find((p) => p.id === alice.playerId).score).toBe(0);
-    expect(next.players.find((p) => p.id === bob.playerId).score).toBe(0);
-    expect(next.history).toHaveLength(1);
-    expect(next.history[0].playerId).toBe(bob.playerId);
-    expect(next.history[0].actorPlayerId).toBe(alice.playerId);
-  });
-
-  it("applies an all_players effect to every player including the actor", () => {
-    const { state, alice, bob } = startedTwoPlayerState();
-    const { state: next } = applyAction(
-      state,
-      { type: "ACTIVATE_CARD", actorPlayerId: alice.playerId, cardId: "bonus-all" },
-      { cards: TEST_CARDS },
-    );
-    expect(next.players.find((p) => p.id === alice.playerId).score).toBe(1);
-    expect(next.players.find((p) => p.id === bob.playerId).score).toBe(1);
-    expect(next.history).toHaveLength(2);
-  });
-
-  it("can be activated more than once", () => {
-    const { state, alice } = startedTwoPlayerState();
-    const { state: once } = applyAction(
-      state,
-      { type: "ACTIVATE_CARD", actorPlayerId: alice.playerId, cardId: "gain-self" },
-      { cards: TEST_CARDS },
-    );
-    const { state: twice } = applyAction(
-      once,
-      { type: "ACTIVATE_CARD", actorPlayerId: alice.playerId, cardId: "gain-self" },
-      { cards: TEST_CARDS },
-    );
-    expect(twice.players.find((p) => p.id === alice.playerId).score).toBe(4);
+    expect(next.players.find((p) => p.id === bob.playerId).score).toBe(3);
+    expect(next.players.find((p) => p.id === carl.playerId).score).toBe(0);
+    expect(next.history).toHaveLength(3);
+    expect(next.history[1]).toMatchObject({ source: "group_penalty", actorPlayerId: alice.playerId });
   });
 });
 
